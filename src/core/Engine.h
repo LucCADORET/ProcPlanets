@@ -28,7 +28,6 @@
 
 #include <webgpu/webgpu.hpp>
 #include <glm/glm.hpp>
-#include "scenes/Scene.hpp"
 #include "core/Renderer.h"
 
 // Forward declare
@@ -108,9 +107,6 @@ class Engine {
     // Everything that is initialized in `onInit` and needed in `onFrame`.
     GLFWwindow* m_window = nullptr;
     Renderer m_renderer;
-
-    // The currently loaded scene
-    unique_ptr<Scene> m_scene;
 
     CameraState m_cameraState;
     DragState m_drag;
