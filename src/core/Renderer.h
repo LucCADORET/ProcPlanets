@@ -20,7 +20,7 @@ using VertexAttributes = ResourceManager::VertexAttributes;
 class Renderer {
    public:
     bool init(GLFWwindow* window);
-    bool setPlanetPipeline(std::vector<VertexAttributes> vertexData, std::vector<uint16_t> indices);
+    bool setPlanetPipeline(std::vector<VertexAttributes> vertexData, std::vector<uint32_t> indices);
     bool setSkyboxPipeline();
     void terminate();
     void onFrame();
@@ -91,7 +91,7 @@ class Renderer {
     int m_vertexCount;
     int m_indexCount;
     vector<ResourceManager::VertexAttributes> m_vertexData;
-    vector<uint16_t> m_indexData;
+    vector<uint32_t> m_indexData;
     wgpu::TextureView mBaseColorTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mBaseColorTexture = nullptr;
     wgpu::TextureView mNormalMapTextureView = nullptr;  // keep track of it for later cleanup

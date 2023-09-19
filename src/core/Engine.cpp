@@ -87,7 +87,7 @@ bool Engine::onInit() {
     // generate the planet and set it in the pipeline
     PlanetGenerator generator;
     std::vector<VertexAttributes> vertexData;
-    std::vector<uint16_t> indices;
+    std::vector<uint32_t> indices;
     generator.generatePlanetData(vertexData, indices);
     m_renderer.setPlanetPipeline(vertexData, indices);
 

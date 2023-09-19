@@ -24,7 +24,7 @@ bool Renderer::init(GLFWwindow* window) {
     RequiredLimits requiredLimits = Default;
     requiredLimits.limits.maxVertexAttributes = 6;
     requiredLimits.limits.maxVertexBuffers = 1;
-    requiredLimits.limits.maxBufferSize = 500000 * sizeof(VertexAttributes);
+    requiredLimits.limits.maxBufferSize = 5000000 * sizeof(VertexAttributes);
     requiredLimits.limits.maxVertexBufferArrayStride = sizeof(VertexAttributes);
     requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
     requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
@@ -115,7 +115,7 @@ void Renderer::onFrame() {
     // the whole scene stuff
     renderPass.setPipeline(m_pipeline);
     renderPass.setVertexBuffer(0, m_vertexBuffer, 0, m_vertexCount * sizeof(VertexAttributes));
-    renderPass.setIndexBuffer(m_indexBuffer, IndexFormat::Uint16, 0, m_indexCount * sizeof(uint16_t));
+    renderPass.setIndexBuffer(m_indexBuffer, IndexFormat::Uint32, 0, m_indexCount * sizeof(uint32_t));
     renderPass.setBindGroup(0, m_bindGroup, 0, nullptr);
     renderPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
 
@@ -206,7 +206,7 @@ void Renderer::buildDepthBuffer() {
 // create a pipeline from a given resource bundle
 bool Renderer::setPlanetPipeline(
     std::vector<VertexAttributes> vertexData,
-    std::vector<uint16_t> indices) {
+    std::vector<uint32_t> indices) {
     m_vertexData = vertexData;
     m_indexData = indices;
 
@@ -361,7 +361,7 @@ bool Renderer::setPlanetPipeline(
 
     // Create index buffer
     // (we reuse the bufferDesc initialized for the vertexBuffer)
-    bufferDesc.size = m_indexData.size() * sizeof(uint16_t);
+    bufferDesc.size = m_indexData.size() * sizeof(uint32_t);
     bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Index;
     bufferDesc.mappedAtCreation = false;
     m_indexBuffer = m_device.createBuffer(bufferDesc);

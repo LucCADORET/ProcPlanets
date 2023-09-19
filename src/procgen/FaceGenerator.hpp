@@ -21,7 +21,7 @@ class FaceGenerator {
     // we directly write in given arrays, they should be of the right size already
     void generateFaceData(
         std::vector<VertexAttributes>& vertexData,
-        std::vector<uint16_t>& indices) {
+        std::vector<uint32_t>& indices) {
 
         // start the index from the last of the previous face
         int tri_index = indices.size();

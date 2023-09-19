@@ -5,7 +5,7 @@
 // - later on materials ??
 void PlanetGenerator::generatePlanetData(
     std::vector<VertexAttributes> &vertexData,
-    std::vector<uint16_t> &indices) {
+    std::vector<uint32_t> &indices) {
     unsigned int resolution = 100;
     auto top = glm::vec3(0.0f, 1.0f, 0.0f);
     auto down = glm::vec3(0.0f, -1.0f, 0.0f);
