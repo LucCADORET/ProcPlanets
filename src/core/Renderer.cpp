@@ -115,8 +115,9 @@ void Renderer::onFrame() {
     // the whole scene stuff
     renderPass.setPipeline(m_pipeline);
     renderPass.setVertexBuffer(0, m_vertexBuffer, 0, m_vertexCount * sizeof(VertexAttributes));
+    renderPass.setIndexBuffer(m_indexBuffer, IndexFormat::Uint16, 0, m_indexCount * sizeof(uint16_t));
     renderPass.setBindGroup(0, m_bindGroup, 0, nullptr);
-    renderPass.draw(m_vertexCount, 1, 0, 0);
+    renderPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
 
     // We add the GUI drawing commands to the render pass
     updateGui(renderPass);
@@ -203,11 +204,16 @@ void Renderer::buildDepthBuffer() {
 }
 
 // create a pipeline from a given resource bundle
-bool Renderer::setScenePipeline(ResourceManager::ResourceBundle bundle) {
-    // TODO: does it make sense to have a shader with params ? it's just
+bool Renderer::setPlanetPipeline(
+    std::vector<VertexAttributes> vertexData,
+    std::vector<uint16_t> indices) {
+    m_vertexData = vertexData;
+    m_indexData = indices;
+
     // Load the shaders
     std::cout << "Creating shader module..." << std::endl;
-    wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(bundle.shaderPath, m_device);
+    string shaderPath = ASSETS_DIR "/spheres/shader.wgsl";
+    wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
     std::cout << "Shader module: " << shaderModule << std::endl;
 
     std::cout << "Creating render pipeline..." << std::endl;
@@ -305,8 +311,7 @@ bool Renderer::setScenePipeline(ResourceManager::ResourceBundle bundle) {
     // Create binding layouts
     // If the scene has textures, we will add the bindgroups for it + the sampler of the textures
     // Otherwise the only binding is our uniform
-    int entriesCount = 4;
-    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(entriesCount, Default);
+    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(1, Default);
 
     // The uniform buffer binding that we already had
     BindGroupLayoutEntry& bindingLayout = bindingLayoutEntries[0];
@@ -314,26 +319,6 @@ bool Renderer::setScenePipeline(ResourceManager::ResourceBundle bundle) {
     bindingLayout.visibility = ShaderStage::Vertex | ShaderStage::Fragment;
     bindingLayout.buffer.type = BufferBindingType::Uniform;
     bindingLayout.buffer.minBindingSize = sizeof(SceneUniforms);
-
-    // Sampler
-    BindGroupLayoutEntry& samplerBindingLayout = bindingLayoutEntries[1];
-    samplerBindingLayout.binding = 1;
-    samplerBindingLayout.visibility = ShaderStage::Fragment;
-    samplerBindingLayout.sampler.type = SamplerBindingType::Filtering;
-
-    // Base color
-    BindGroupLayoutEntry& baseColorTextureBindingLayout = bindingLayoutEntries[2];
-    baseColorTextureBindingLayout.binding = 2;
-    baseColorTextureBindingLayout.visibility = ShaderStage::Fragment;
-    baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Float;
-    baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
-
-    // Normal map
-    BindGroupLayoutEntry& normalMapTextureBindingLayout = bindingLayoutEntries[3];
-    normalMapTextureBindingLayout.binding = 3;
-    normalMapTextureBindingLayout.visibility = ShaderStage::Fragment;
-    normalMapTextureBindingLayout.texture.sampleType = TextureSampleType::Float;
-    normalMapTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
 
     // Create a bind group layout
     BindGroupLayoutDescriptor bindGroupLayoutDesc{};
@@ -365,21 +350,23 @@ bool Renderer::setScenePipeline(ResourceManager::ResourceBundle bundle) {
     samplerDesc.maxAnisotropy = 1;
     m_sampler = m_device.createSampler(samplerDesc);
 
-    // Create vertex buffer
-    // Load mesh data from OBJ file
-    bool success = ResourceManager::loadGeometryFromObj(bundle.objPath, m_vertexData);
-    if (!success) {
-        std::cerr << "Could not load geometry!" << std::endl;
-        return false;
-    }
+    // define vertex buffer
     BufferDescriptor bufferDesc;
     bufferDesc.size = m_vertexData.size() * sizeof(VertexAttributes);
     bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Vertex;
     bufferDesc.mappedAtCreation = false;
     m_vertexBuffer = m_device.createBuffer(bufferDesc);
     m_queue.writeBuffer(m_vertexBuffer, 0, m_vertexData.data(), bufferDesc.size);
-
     m_vertexCount = static_cast<int>(m_vertexData.size());
+
+    // Create index buffer
+    // (we reuse the bufferDesc initialized for the vertexBuffer)
+    bufferDesc.size = m_indexData.size() * sizeof(uint16_t);
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Index;
+    bufferDesc.mappedAtCreation = false;
+    m_indexBuffer = m_device.createBuffer(bufferDesc);
+    m_queue.writeBuffer(m_indexBuffer, 0, m_indexData.data(), bufferDesc.size);
+    m_indexCount = static_cast<int>(m_indexData.size());
 
     // Create uniform buffer
     bufferDesc.size = sizeof(SceneUniforms);
@@ -402,37 +389,13 @@ bool Renderer::setScenePipeline(ResourceManager::ResourceBundle bundle) {
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
 
     // Add the data to the actual bindings
-    std::vector<BindGroupEntry> bindings(entriesCount);
+    std::vector<BindGroupEntry> bindings(1);
 
     // uniform
     bindings[0].binding = 0;
     bindings[0].buffer = m_uniformBuffer;
     bindings[0].offset = 0;
     bindings[0].size = sizeof(SceneUniforms);
-
-    // sampler
-    bindings[1].binding = 1;
-    bindings[1].sampler = m_sampler;
-
-    // base color
-    mBaseColorTexture = ResourceManager::loadTexture(
-        bundle.baseColorTexturePath, m_device, &mBaseColorTextureView);
-    if (!mBaseColorTexture) {
-        std::cerr << "Could not load texture!" << std::endl;
-        return false;
-    }
-    bindings[2].binding = 2;
-    bindings[2].textureView = mBaseColorTextureView;
-
-    // normal map
-    mNormalMapTexture = ResourceManager::loadTexture(
-        bundle.normalMapTexturePath, m_device, &mNormalMapTextureView);
-    if (!mNormalMapTexture) {
-        std::cerr << "Could not load texture!" << std::endl;
-        return false;
-    }
-    bindings[3].binding = 3;
-    bindings[3].textureView = mNormalMapTextureView;
 
     BindGroupDescriptor bindGroupDesc;
     bindGroupDesc.layout = bindGroupLayout;
@@ -744,14 +707,8 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
 void Renderer::terminate() {
     m_vertexBuffer.destroy();
     m_vertexBuffer.release();
-
-    mBaseColorTextureView.release();
-    mBaseColorTexture.destroy();
-    mBaseColorTexture.release();
-
-    mNormalMapTextureView.release();
-    mNormalMapTexture.destroy();
-    mNormalMapTexture.release();
+    m_indexBuffer.destroy();
+    m_indexBuffer.release();
 
     m_depthTextureView.release();
     m_depthTexture.destroy();

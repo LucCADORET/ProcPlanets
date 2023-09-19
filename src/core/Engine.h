@@ -29,6 +29,7 @@
 #include <webgpu/webgpu.hpp>
 #include <glm/glm.hpp>
 #include "core/Renderer.h"
+#include "procgen/PlanetGenerator.h"
 
 // Forward declare
 struct GLFWwindow;

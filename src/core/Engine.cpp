@@ -84,13 +84,12 @@ bool Engine::onInit() {
     // setup the skybox
     m_renderer.setSkyboxPipeline();
 
-    // default scene to render
-    ResourceManager::ResourceBundle sceneBundle;
-    sceneBundle.shaderPath = ASSETS_DIR "/spaceship/shader.wgsl";
-    sceneBundle.objPath = ASSETS_DIR "/spaceship/spaceship.obj";
-    sceneBundle.normalMapTexturePath = ASSETS_DIR "/spaceship/Material_normal.png";
-    sceneBundle.baseColorTexturePath = ASSETS_DIR "/spaceship/Material_baseColor.png";
-    m_renderer.setScenePipeline(sceneBundle);
+    // generate the planet and set it in the pipeline
+    PlanetGenerator generator;
+    std::vector<VertexAttributes> vertexData;
+    std::vector<uint16_t> indices;
+    generator.generatePlanetData(vertexData, indices);
+    m_renderer.setPlanetPipeline(vertexData, indices);
 
     // Setup GLFW callbacks
     glfwSetWindowUserPointer(m_window, this);

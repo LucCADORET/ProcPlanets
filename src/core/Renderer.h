@@ -15,10 +15,12 @@
 #include <backends/imgui_impl_wgpu.h>
 #include <backends/imgui_impl_glfw.h>
 
+using VertexAttributes = ResourceManager::VertexAttributes;
+
 class Renderer {
    public:
     bool init(GLFWwindow* window);
-    bool setScenePipeline(ResourceManager::ResourceBundle bundle);
+    bool setPlanetPipeline(std::vector<VertexAttributes> vertexData, std::vector<uint16_t> indices);
     bool setSkyboxPipeline();
     void terminate();
     void onFrame();
@@ -77,6 +79,7 @@ class Renderer {
     wgpu::RenderPipeline m_pipeline = nullptr;
     wgpu::Sampler m_sampler = nullptr;
     wgpu::Buffer m_vertexBuffer = nullptr;
+    wgpu::Buffer m_indexBuffer = nullptr;
     wgpu::Buffer m_uniformBuffer = nullptr;
     wgpu::BindGroup m_bindGroup = nullptr;
 
@@ -86,7 +89,9 @@ class Renderer {
     // Model rendering part
     SceneUniforms m_uniforms;
     int m_vertexCount;
+    int m_indexCount;
     vector<ResourceManager::VertexAttributes> m_vertexData;
+    vector<uint16_t> m_indexData;
     wgpu::TextureView mBaseColorTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mBaseColorTexture = nullptr;
     wgpu::TextureView mNormalMapTextureView = nullptr;  // keep track of it for later cleanup
