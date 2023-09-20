@@ -1,14 +1,18 @@
 #include "glm/glm.hpp"
 #include "resource/ResourceManager.h"
+#include "procgen/ElevationGenerator.hpp"
 
 using VertexAttributes = ResourceManager::VertexAttributes;
 
 class FaceGenerator {
    public:
-    FaceGenerator(glm::vec3 _face_normal, unsigned int _resolution, float _radius) {
+    // TODO: this constructor is dirty: should I do like this ?
+    FaceGenerator(
+        glm::vec3 _face_normal,
+        unsigned int _resolution,
+        ElevationGenerator& _elevationGenerator) : elevationGenerator(_elevationGenerator) {
         face_normal = _face_normal;
         resolution = _resolution;
-        radius = _radius;
 
         // we pick a orthogonal vector to get 2 unit axis on the surface...
         // tbh I can't fully grasp the intuition on which axis to get
@@ -44,11 +48,11 @@ class FaceGenerator {
 
                 // TODO: add noise
                 // glm::vec3 point_on_planet = shape_generator.compute_elevation(point_on_unit_sphere)
-                glm::vec3 point_on_planet = point_on_unit_sphere * radius;
+                glm::vec3 point_on_planet = elevationGenerator.evaluate(point_on_unit_sphere);
 
                 // build the vertex attributes
                 VertexAttributes attributes = {
-                    point_on_planet,  // position;
+                    point_on_planet,       // position;
                     point_on_unit_sphere,  // normal;
                     point_on_unit_sphere,  // color;
                     glm::vec2(0.0f),       // uv;
@@ -81,4 +85,5 @@ class FaceGenerator {
     glm::vec3 axis_b;
     unsigned int resolution;
     float radius;
+    ElevationGenerator elevationGenerator;
 };

@@ -21,6 +21,8 @@ add_executable(
     src/resource/ResourceManager.cpp
     src/procgen/PlanetGenerator.h
     src/procgen/PlanetGenerator.cpp
+    src/procgen/FastNoiseLite.h
+    src/procgen/ElevationGenerator.hpp
 )
 
 # Add some include paths

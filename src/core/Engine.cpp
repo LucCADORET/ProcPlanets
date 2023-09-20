@@ -101,10 +101,9 @@ void Engine::onFrame() {
     GUISettings settings = m_renderer.getGUISettings();
     if (settings.changed) {
         m_renderer.terminatePlanetPipeline();
-        PlanetGenerator generator;
         std::vector<VertexAttributes> vertexData;
         std::vector<uint32_t> indices;
-        generator.generatePlanetData(vertexData, indices, settings);
+        m_planetGenerator.generatePlanetData(vertexData, indices, settings);
         m_renderer.setPlanetPipeline(vertexData, indices);
     }
 

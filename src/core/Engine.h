@@ -111,4 +111,6 @@ class Engine {
 
     CameraState m_cameraState;
     DragState m_drag;
+
+    PlanetGenerator m_planetGenerator;
 };
