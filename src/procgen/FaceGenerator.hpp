@@ -53,7 +53,7 @@ class FaceGenerator {
                 // build the vertex attributes
                 VertexAttributes attributes = {
                     point_on_planet,       // position;
-                    point_on_unit_sphere,  // normal;
+                    glm::vec3(0.0f),       // normal, computed later
                     point_on_unit_sphere,  // color;
                     glm::vec2(0.0f),       // uv;
                     glm::vec3(0.0f),       // tangent;

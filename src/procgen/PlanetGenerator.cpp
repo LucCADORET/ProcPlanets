@@ -7,7 +7,6 @@ void PlanetGenerator::generatePlanetData(
     std::vector<VertexAttributes> &vertexData,
     std::vector<uint32_t> &indices,
     GUISettings settings) {
-
     // settings of the planet
     unsigned int resolution = settings.resolution;
     float radius = settings.radius;
@@ -33,8 +32,27 @@ void PlanetGenerator::generatePlanetData(
         FaceGenerator faceGenerator(face, resolution, elevationGenerator);
         faceGenerator.generateFaceData(vertexData, indices);
     }
+
+    // generate the normals
+    for (uint32_t i = 0; i < indices.size(); i += 3) {
+        auto &v1 = vertexData[indices[i]];
+        auto &v2 = vertexData[indices[i+1]];
+        auto &v3 = vertexData[indices[i+2]];
+        auto edge1 = v2.position - v1.position;
+        auto edge2 = v3.position - v1.position;
+        auto face_normal = glm::cross(edge1, edge2);
+        v1.normal += face_normal;
+        v2.normal += face_normal;
+        v3.normal += face_normal;
+    }
+
+    // normalize the normals
+    for (uint32_t i = 0; i < vertexData.size(); i++) {
+        vertexData[i].normal = glm::normalize(vertexData[i].normal);
+    }
+
     auto end = chrono::steady_clock::now();
-    cout << "Time to generate planet vertices: "
+    cout << "Time to generate planet data: "
          << chrono::duration_cast<chrono::milliseconds>(end - start).count()
          << " ms" << endl;
 }
