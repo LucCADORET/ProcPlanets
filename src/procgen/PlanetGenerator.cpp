@@ -5,8 +5,14 @@
 // - later on materials ??
 void PlanetGenerator::generatePlanetData(
     std::vector<VertexAttributes> &vertexData,
-    std::vector<uint32_t> &indices) {
-    unsigned int resolution = 100;
+    std::vector<uint32_t> &indices,
+    GUISettings settings) {
+
+    // settings of the planet
+    unsigned int resolution = settings.resolution;
+    float radius = settings.radius;
+
+    // define the faces normals
     auto top = glm::vec3(0.0f, 1.0f, 0.0f);
     auto down = glm::vec3(0.0f, -1.0f, 0.0f);
     auto left = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -23,7 +29,7 @@ void PlanetGenerator::generatePlanetData(
     auto start = chrono::steady_clock::now();
     for (uint8_t i = 0; i < faces.size(); i++) {
         glm::vec3 face = faces[i];
-        FaceGenerator faceGenerator(face, resolution);
+        FaceGenerator faceGenerator(face, resolution, radius);
         faceGenerator.generateFaceData(vertexData, indices);
     }
     auto end = chrono::steady_clock::now();

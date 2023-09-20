@@ -5,9 +5,10 @@ using VertexAttributes = ResourceManager::VertexAttributes;
 
 class FaceGenerator {
    public:
-    FaceGenerator(glm::vec3 _face_normal, unsigned int _resolution) {
+    FaceGenerator(glm::vec3 _face_normal, unsigned int _resolution, float _radius) {
         face_normal = _face_normal;
         resolution = _resolution;
+        radius = _radius;
 
         // we pick a orthogonal vector to get 2 unit axis on the surface...
         // tbh I can't fully grasp the intuition on which axis to get
@@ -22,7 +23,6 @@ class FaceGenerator {
     void generateFaceData(
         std::vector<VertexAttributes>& vertexData,
         std::vector<uint32_t>& indices) {
-
         // start the index from the last of the previous face
         int tri_index = indices.size();
         int vert_index_offset = vertexData.size();
@@ -30,7 +30,7 @@ class FaceGenerator {
         // resize the vertex data to hold the new face
         int quad_count = int(pow(resolution - 1, 2));
         vertexData.resize(vert_index_offset + resolution * resolution);
-        indices.resize(tri_index + quad_count * 2 * 3 );
+        indices.resize(tri_index + quad_count * 2 * 3);
         for (unsigned int y = 0; y < resolution; y++) {
             for (unsigned int x = 0; x < resolution; x++) {
                 int i = vert_index_offset + x + y * resolution;
@@ -42,12 +42,13 @@ class FaceGenerator {
                 // normalizing from the center will create a sphere
                 glm::vec3 point_on_unit_sphere = glm::normalize(point_on_unit_cube);
 
-                // TODO: add radius and noise
+                // TODO: add noise
                 // glm::vec3 point_on_planet = shape_generator.compute_elevation(point_on_unit_sphere)
+                glm::vec3 point_on_planet = point_on_unit_sphere * radius;
 
                 // build the vertex attributes
                 VertexAttributes attributes = {
-                    point_on_unit_sphere,  // position;
+                    point_on_planet,  // position;
                     point_on_unit_sphere,  // normal;
                     point_on_unit_sphere,  // color;
                     glm::vec2(0.0f),       // uv;
@@ -79,4 +80,5 @@ class FaceGenerator {
     glm::vec3 axis_a;
     glm::vec3 axis_b;
     unsigned int resolution;
+    float radius;
 };

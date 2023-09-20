@@ -211,12 +211,12 @@ bool Renderer::setPlanetPipeline(
     m_indexData = indices;
 
     // Load the shaders
-    std::cout << "Creating shader module..." << std::endl;
+    // std::cout << "Creating shader module..." << std::endl;
     string shaderPath = ASSETS_DIR "/spheres/shader.wgsl";
     wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
-    std::cout << "Shader module: " << shaderModule << std::endl;
+    // std::cout << "Shader module: " << shaderModule << std::endl;
 
-    std::cout << "Creating render pipeline..." << std::endl;
+    // std::cout << "Creating render pipeline..." << std::endl;
     RenderPipelineDescriptor pipelineDesc;
 
     // Vertex fetch
@@ -334,7 +334,7 @@ bool Renderer::setPlanetPipeline(
     pipelineDesc.layout = layout;
 
     m_pipeline = m_device.createRenderPipeline(pipelineDesc);
-    std::cout << "Render pipeline: " << m_pipeline << std::endl;
+    // std::cout << "Render pipeline: " << m_pipeline << std::endl;
 
     // Create a sampler
     SamplerDescriptor samplerDesc;
@@ -624,7 +624,7 @@ bool Renderer::setSkyboxPipeline() {
 void Renderer::updateCamera(glm::vec3 position) {
     // update the view position
     m_uniforms.viewPosition = glm::vec4(position.x, position.y, position.z, 1.0);
-    cout << m_uniforms.viewPosition.x << ' ' << m_uniforms.viewPosition.y << ' ' << m_uniforms.viewPosition.z << endl;
+    // cout << m_uniforms.viewPosition.x << ' ' << m_uniforms.viewPosition.y << ' ' << m_uniforms.viewPosition.z << endl;
     m_queue.writeBuffer(
         m_uniformBuffer,
         offsetof(SceneUniforms, viewPosition),
@@ -670,26 +670,34 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
 
     {
         // Build a demo UI
-        static float f = 0.0f;
-        static int counter = 0;
-        static bool show_demo_window = true;
-        static bool show_another_window = false;
-        static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+        bool changed = false;
+        static int resolution = 10;
+        static float radius = 10.0f;
+        // static int counter = 0;
+        // static bool show_demo_window = true;
+        // static bool show_another_window = false;
+        // static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-        ImGui::Begin("Scene info");  // Create a window called "Hello, world!" and append into it.
+        ImGui::Begin("Settings");  // Create a window called "Hello, world!" and append into it.
 
-        ImGui::Text("This is some useful text.");           // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window);  // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &show_another_window);
+        // ImGui::Text("This is some useful text.");           // Display some text (you can use a format strings too)
+        // ImGui::Checkbox("Demo Window", &show_demo_window);  // Edit bools storing our window open/close state
+        // ImGui::Checkbox("Another Window", &show_another_window);
 
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float*)&clear_color);  // Edit 3 floats representing a color
+        // ImGui::ColorEdit3("clear color", (float*)&clear_color);  // Edit 3 floats representing a color
 
-        if (ImGui::Button("Button")) {  // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        }
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
+        // if (ImGui::Button("Button")) {  // Buttons return true when clicked (most widgets return true when edited/activated)
+        //     counter++;
+        // }
+        // ImGui::SameLine();
+        // ImGui::Text("counter = %d", counter);
+        changed = ImGui::SliderInt("resolution", &resolution, 2, 500) || changed;  // count of vertices per face
+        changed = ImGui::SliderFloat("radius", &radius, 0.0f, 100.0f) || changed;
+        mGUISettings = {
+            changed,
+            resolution,
+            radius,
+        };
 
         ImGuiIO& io = ImGui::GetIO();
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -704,11 +712,23 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
     ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
 }
 
+void Renderer::terminatePlanetPipeline() {
+    // check if there's something to release
+    if (m_pipeline != nullptr) {
+        m_pipeline.release();
+        m_uniformBuffer.release();
+        m_bindGroup.release();
+        m_sampler.release();
+
+        m_vertexBuffer.destroy();
+        m_vertexBuffer.release();
+        m_indexBuffer.destroy();
+        m_indexBuffer.release();
+    }
+}
+
 void Renderer::terminate() {
-    m_vertexBuffer.destroy();
-    m_vertexBuffer.release();
-    m_indexBuffer.destroy();
-    m_indexBuffer.release();
+    terminatePlanetPipeline();
 
     m_depthTextureView.release();
     m_depthTexture.destroy();

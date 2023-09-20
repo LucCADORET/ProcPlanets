@@ -84,13 +84,6 @@ bool Engine::onInit() {
     // setup the skybox
     m_renderer.setSkyboxPipeline();
 
-    // generate the planet and set it in the pipeline
-    PlanetGenerator generator;
-    std::vector<VertexAttributes> vertexData;
-    std::vector<uint32_t> indices;
-    generator.generatePlanetData(vertexData, indices);
-    m_renderer.setPlanetPipeline(vertexData, indices);
-
     // Setup GLFW callbacks
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, onWindowResize);
@@ -104,6 +97,17 @@ bool Engine::onInit() {
 }
 
 void Engine::onFrame() {
+    // if the settings changed, take down the current pipeline and rebuild the planet
+    GUISettings settings = m_renderer.getGUISettings();
+    if (settings.changed) {
+        m_renderer.terminatePlanetPipeline();
+        PlanetGenerator generator;
+        std::vector<VertexAttributes> vertexData;
+        std::vector<uint32_t> indices;
+        generator.generatePlanetData(vertexData, indices, settings);
+        m_renderer.setPlanetPipeline(vertexData, indices);
+    }
+
     glfwPollEvents();
     updateDragInertia();
     m_renderer.onFrame();

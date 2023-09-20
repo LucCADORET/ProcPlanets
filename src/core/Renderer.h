@@ -17,18 +17,26 @@
 
 using VertexAttributes = ResourceManager::VertexAttributes;
 
+struct GUISettings {
+    bool changed = true;  // default to true for the initial render
+    int resolution = 10;
+    float radius = 1.0;
+};
+
 class Renderer {
    public:
     bool init(GLFWwindow* window);
     bool setPlanetPipeline(std::vector<VertexAttributes> vertexData, std::vector<uint32_t> indices);
     bool setSkyboxPipeline();
     void terminate();
+    void terminatePlanetPipeline();
     void onFrame();
     wgpu::Device getDevice() { return m_device; };
     wgpu::TextureFormat getSwapChainFormat() { return m_swapChainFormat; };
     wgpu::TextureFormat getDepthTextureFormat() { return m_depthTextureFormat; };
     void updateCamera(glm::vec3 position);
     void resizeSwapChain(GLFWwindow* window);
+    GUISettings getGUISettings() { return mGUISettings; };
 
    private:
     void buildSwapChain(GLFWwindow* window);
@@ -108,4 +116,7 @@ class Renderer {
     vector<ResourceManager::VertexAttributes> mSkyboxVertexData;
     wgpu::TextureView mSkyboxTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mSkyboxTexture = nullptr;
+
+    // GUI related stuff
+    GUISettings mGUISettings;
 };
