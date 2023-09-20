@@ -12,4 +12,17 @@ There are various scenes in the `src/scenes` folder that showcase different stuf
 
 ## TODOs
 
-- Make the same architecture as https://github.com/google/filament ???
+More important is on top (or not)
+
+- add skybox reflection and not just a random light
+- add ocean and ocean shader
+- add some textures
+  - PBR textures ? trilinear texturing ?
+- compute the planet on the GPU
+- add atmosphere
+- add LOD
+- add flight simulator
+- Improve GUI: make input/sliders and not just sliders
+- Get rid of the seams between faces ?
+- Get rid of the unused assets
+- Show a timer of the time taken to build the planet
