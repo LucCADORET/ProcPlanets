@@ -53,10 +53,13 @@ class Renderer {
      * The same structure as in the shader, replicated in C++
      */
     struct SceneUniforms {
-        // We add transform matrices
+        
+        // Transform matrices
         mat4x4 projectionMatrix;
         mat4x4 viewMatrix;
         mat4x4 modelMatrix;
+
+        // Some more stuff, sometimes unused
         vec4 color;
         vec4 lightDirection;
         vec4 baseColor;

@@ -105,6 +105,9 @@ void Engine::onFrame() {
         std::vector<uint32_t> indices;
         m_planetGenerator.generatePlanetData(vertexData, indices, settings);
         m_renderer.setPlanetPipeline(vertexData, indices);
+
+        // update the view matrix to match the current camera position
+        updateViewMatrix();
     }
 
     glfwPollEvents();

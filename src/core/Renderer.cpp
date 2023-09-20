@@ -580,7 +580,7 @@ bool Renderer::setSkyboxPipeline() {
 
     // Upload the initial value of the uniforms
     mSkyboxUniforms.modelMatrix = glm::mat4(1.0f);
-    mSkyboxUniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
+    mSkyboxUniforms.viewMatrix = glm::lookAt(vec3(1.0f), vec3(0.0f), vec3(0, 1, 0));
     mSkyboxUniforms.projectionMatrix = glm::perspective(
         glm::radians(45.0f),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
@@ -652,13 +652,19 @@ void Renderer::updateCamera(glm::vec3 position) {
 void Renderer::resizeSwapChain(GLFWwindow* window) {
     buildSwapChain(window);
 
-    // don't forget to update the projection matrix
+    // update the projection matrix so that the image keeps its aspect
     float ratio = m_swapChainDesc.width / (float)m_swapChainDesc.height;
     m_uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, 0.01f, 100.0f);
     m_queue.writeBuffer(
         m_uniformBuffer,
         offsetof(SceneUniforms, projectionMatrix),
         &m_uniforms.projectionMatrix,
+        sizeof(SceneUniforms::projectionMatrix));
+    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, 0.01f, 100.0f);
+    m_queue.writeBuffer(
+        mSkyboxUniformBuffer,
+        offsetof(SceneUniforms, projectionMatrix),
+        &mSkyboxUniforms.projectionMatrix,
         sizeof(SceneUniforms::projectionMatrix));
 }
 
@@ -671,8 +677,6 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
     {
         // Build a demo UI
         bool changed = false;
-        static int resolution = 10;
-        static float radius = 10.0f;
         // static int counter = 0;
         // static bool show_demo_window = true;
         // static bool show_another_window = false;
@@ -691,13 +695,9 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // }
         // ImGui::SameLine();
         // ImGui::Text("counter = %d", counter);
-        changed = ImGui::SliderInt("resolution", &resolution, 2, 500) || changed;  // count of vertices per face
-        changed = ImGui::SliderFloat("radius", &radius, 0.0f, 100.0f) || changed;
-        mGUISettings = {
-            changed,
-            resolution,
-            radius,
-        };
+        changed = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || changed;  // count of vertices per face
+        changed = ImGui::SliderFloat("radius", &(mGUISettings.radius), 0.0f, 100.0f) || changed;
+        mGUISettings.changed = changed;
 
         ImGuiIO& io = ImGui::GetIO();
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
