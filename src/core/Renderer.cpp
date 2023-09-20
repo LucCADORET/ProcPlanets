@@ -695,8 +695,13 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // }
         // ImGui::SameLine();
         // ImGui::Text("counter = %d", counter);
+        ImGui::SeparatorText("Base sphere");
         changed = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || changed;  // count of vertices per face
-        changed = ImGui::SliderFloat("radius", &(mGUISettings.radius), 0.0f, 100.0f) || changed;
+        changed = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 100.0f) || changed;
+        ImGui::SeparatorText("Noise");
+        changed = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || changed;
+        changed = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || changed;  // count of vertices per face
+
         mGUISettings.changed = changed;
 
         ImGuiIO& io = ImGui::GetIO();

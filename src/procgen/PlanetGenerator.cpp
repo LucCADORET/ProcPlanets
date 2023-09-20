@@ -9,8 +9,10 @@ void PlanetGenerator::generatePlanetData(
     GUISettings settings) {
     // settings of the planet
     unsigned int resolution = settings.resolution;
-    float radius = settings.radius;
-    ElevationGenerator elevationGenerator(radius);
+    ElevationGenerator elevationGenerator(
+        settings.radius,
+        settings.frequency,
+        settings.octaves);
 
     // define the faces normals
     auto top = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -36,8 +38,8 @@ void PlanetGenerator::generatePlanetData(
     // generate the normals
     for (uint32_t i = 0; i < indices.size(); i += 3) {
         auto &v1 = vertexData[indices[i]];
-        auto &v2 = vertexData[indices[i+1]];
-        auto &v3 = vertexData[indices[i+2]];
+        auto &v2 = vertexData[indices[i + 1]];
+        auto &v3 = vertexData[indices[i + 2]];
         auto edge1 = v2.position - v1.position;
         auto edge2 = v3.position - v1.position;
         auto face_normal = glm::cross(edge1, edge2);

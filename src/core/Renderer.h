@@ -19,8 +19,12 @@ using VertexAttributes = ResourceManager::VertexAttributes;
 
 struct GUISettings {
     bool changed = true;  // default to true for the initial render
-    int resolution = 10;
+    int resolution = 50;
     float radius = 1.0;
+
+    // noise settings
+    float frequency = 1.0f;
+    int octaves = 8;
 };
 
 class Renderer {
@@ -53,8 +57,7 @@ class Renderer {
      * The same structure as in the shader, replicated in C++
      */
     struct SceneUniforms {
-        
-        // Transform matrices
+                // Transform matrices
         mat4x4 projectionMatrix;
         mat4x4 viewMatrix;
         mat4x4 modelMatrix;
