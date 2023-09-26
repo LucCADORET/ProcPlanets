@@ -6,7 +6,7 @@
         {
             "label": "naga",
             "type": "shell",
-            "command": "naga ${file}",
+            "command": "naga ${relativeFile}",
             "presentation": {
                 "echo": true,
                 "reveal": "always",
