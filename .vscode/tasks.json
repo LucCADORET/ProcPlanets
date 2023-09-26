@@ -6,7 +6,7 @@
         {
             "label": "naga",
             "type": "shell",
-            "command": "naga assets/spheres/shader.wgsl",
+            "command": "naga ${file}",
             "presentation": {
                 "echo": true,
                 "reveal": "always",
