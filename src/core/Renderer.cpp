@@ -382,7 +382,7 @@ bool Renderer::setPlanetPipeline(
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         0.01f, 100.0f);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
-    m_uniforms.lightDirection = {0.0f, 0.0f, -1.0f, 0.0f};
+    m_uniforms.lightDirection = glm::normalize(vec4({-54.0f, 7.77f, 2.5f, 0.0f}));
     m_uniforms.baseColor = {0.32, 0.26, 0.21, 1.0f};
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
@@ -703,7 +703,8 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         changed = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || changed;  // count of vertices per face
 
         mGUISettings.changed = changed;
-
+        ImGui::SeparatorText("Debug");
+        ImGui::Text("View pos: (%.3f, %.3f, %.3f)", m_uniforms.viewPosition.x, m_uniforms.viewPosition.y, m_uniforms.viewPosition.z);
         ImGuiIO& io = ImGui::GetIO();
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
         ImGui::End();
