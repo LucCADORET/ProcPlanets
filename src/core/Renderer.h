@@ -19,7 +19,7 @@ using VertexAttributes = ResourceManager::VertexAttributes;
 
 struct GUISettings {
     bool changed = true;  // default to true for the initial render
-    int resolution = 50;
+    int resolution = 100;
     float radius = 1.0;
 
     // noise settings

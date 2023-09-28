@@ -383,7 +383,7 @@ bool Renderer::setPlanetPipeline(
         0.01f, 100.0f);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
     m_uniforms.lightDirection = {0.0f, 0.0f, -1.0f, 0.0f};
-    m_uniforms.baseColor = {0.24f, 0.26f, 0.55f, 1.0f};
+    m_uniforms.baseColor = {0.32, 0.26, 0.21, 1.0f};
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
