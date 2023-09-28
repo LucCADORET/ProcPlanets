@@ -42,7 +42,7 @@ void PlanetGenerator::generatePlanetData(
         auto &v3 = vertexData[indices[i + 2]];
         auto edge1 = v2.position - v1.position;
         auto edge2 = v3.position - v1.position;
-        auto face_normal = glm::cross(edge1, edge2);
+        auto face_normal = glm::cross(edge2, edge1);
         v1.normal += face_normal;
         v2.normal += face_normal;
         v3.normal += face_normal;
