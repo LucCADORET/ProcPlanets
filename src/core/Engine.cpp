@@ -141,6 +141,7 @@ void Engine::onMouseMove(double xpos, double ypos) {
 
         // Inertia
         m_drag.velocity = delta - m_drag.previousDelta;
+        // std::cout << m_drag.velocity.x << " " << m_drag.velocity.y << std::endl;
         m_drag.previousDelta = delta;
     }
 }

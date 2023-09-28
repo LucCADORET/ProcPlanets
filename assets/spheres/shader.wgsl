@@ -59,6 +59,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, in.normal);  
 	let specular = pow(max(dot(viewDir.xyz, reflectDir), 0.0), 16.0);
 
-	// return ambiant + diffuse + specular;
-	return ambiant + diffuse + specular;
+	let color: vec4f = ambiant + diffuse + specular;
+
+	// gamma correction
+    let corrected_color = pow(color, vec4f(2.2));
+	
+	return vec4f(corrected_color.xyz, 1.0);
 }
