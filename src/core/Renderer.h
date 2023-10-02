@@ -30,7 +30,10 @@ struct GUISettings {
 class Renderer {
    public:
     bool init(GLFWwindow* window);
-    bool setPlanetPipeline(std::vector<VertexAttributes> vertexData, std::vector<uint32_t> indices);
+    bool setPlanetPipeline(
+        std::vector<VertexAttributes> const& vertexData,
+        std::vector<uint32_t> const& indices);
+    bool setShadowPipeline();
     bool setSkyboxPipeline();
     void terminate();
     void terminatePlanetPipeline();
@@ -44,7 +47,8 @@ class Renderer {
 
    private:
     void buildSwapChain(GLFWwindow* window);
-    void buildDepthBuffer();
+    void buildDepthTexture();
+    void buildShadowDepthTexture();
     void updateGui(wgpu::RenderPassEncoder renderPass);
 
     // (Just aliases to make notations lighter)
@@ -53,14 +57,12 @@ class Renderer {
     using vec3 = glm::vec3;
     using vec2 = glm::vec2;
 
-    /**
-     * The same structure as in the shader, replicated in C++
-     */
     struct SceneUniforms {
-                // Transform matrices
+        // Transform matrices
         mat4x4 projectionMatrix;
         mat4x4 viewMatrix;
         mat4x4 modelMatrix;
+        mat4x4 lightViewProjMatrix;
 
         // Some more stuff, sometimes unused
         vec4 color;
@@ -110,6 +112,14 @@ class Renderer {
     wgpu::Texture mBaseColorTexture = nullptr;
     wgpu::TextureView mNormalMapTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mNormalMapTexture = nullptr;
+
+    // shadow related stuff
+    wgpu::RenderPipeline mShadowPipeline = nullptr;
+    wgpu::BindGroup mShadowBindGroup = nullptr;
+    unsigned int mShadowDepthTextureSize = 1024;
+    wgpu::TextureView mShadowDepthTextureView = nullptr;  // keep track of it for later cleanup
+    wgpu::Texture mShadowDepthTexture = nullptr;
+    wgpu::TextureFormat mShadowDepthTextureFormat = wgpu::TextureFormat::Depth32Float;
 
     // skybox related stuff
     wgpu::RenderPipeline mSkyboxPipeline = nullptr;

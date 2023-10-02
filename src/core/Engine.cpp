@@ -97,7 +97,7 @@ bool Engine::onInit() {
 }
 
 void Engine::onFrame() {
-    // if the settings changed, take down the current pipeline and rebuild the planet
+     // if the settings changed, take down the current pipeline and rebuild the planet
     GUISettings settings = m_renderer.getGUISettings();
     if (settings.changed) {
         m_renderer.terminatePlanetPipeline();
