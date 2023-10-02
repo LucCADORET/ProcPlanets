@@ -391,12 +391,12 @@ bool Renderer::setPlanetPipeline(
     samplerBindingLayout.visibility = ShaderStage::Fragment;
     samplerBindingLayout.sampler.type = SamplerBindingType::Comparison;
 
-    // Base color of the skybox
+    // The depth texture
     BindGroupLayoutEntry& baseColorTextureBindingLayout = bindingLayoutEntries[2];
     baseColorTextureBindingLayout.binding = 2;
     baseColorTextureBindingLayout.visibility = ShaderStage::Fragment;
-    baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Float;
-    baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::Cube;
+    baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Depth;
+    baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
 
     // Create a bind group layout
     BindGroupLayoutDescriptor bindGroupLayoutDesc{};
@@ -414,7 +414,7 @@ bool Renderer::setPlanetPipeline(
     m_pipeline = m_device.createRenderPipeline(pipelineDesc);
     // std::cout << "Render pipeline: " << m_pipeline << std::endl;
 
-    // Create a sampler
+    // Create a sampler for the textures
     SamplerDescriptor samplerDesc;
     samplerDesc.addressModeU = AddressMode::Repeat;
     samplerDesc.addressModeV = AddressMode::Repeat;
@@ -427,6 +427,12 @@ bool Renderer::setPlanetPipeline(
     samplerDesc.compare = CompareFunction::Undefined;
     samplerDesc.maxAnisotropy = 1;
     m_sampler = m_device.createSampler(samplerDesc);
+
+    // Create the sampler for the shadows
+    SamplerDescriptor shadowSamplerDesc;
+    shadowSamplerDesc.compare = CompareFunction::Less;
+    shadowSamplerDesc.maxAnisotropy = 1;
+    mShadowSampler = m_device.createSampler(shadowSamplerDesc);
 
     // define vertex buffer
     BufferDescriptor bufferDesc;
@@ -477,7 +483,7 @@ bool Renderer::setPlanetPipeline(
 
     // sampler
     bindings[1].binding = 1;
-    bindings[1].sampler = m_sampler;
+    bindings[1].sampler = mShadowSampler;
 
     // The shadow texture
     bindings[2].binding = 2;
@@ -489,6 +495,8 @@ bool Renderer::setPlanetPipeline(
     bindGroupDesc.entries = bindings.data();
     m_bindGroup = m_device.createBindGroup(bindGroupDesc);
 
+    // Create the shadow pipeline after the planet one
+    setShadowPipeline();
     return true;
 }
 
@@ -560,7 +568,7 @@ bool Renderer::setShadowPipeline() {
     DepthStencilState depthStencilState = Default;
     depthStencilState.depthCompare = CompareFunction::Less;
     depthStencilState.depthWriteEnabled = true;
-    depthStencilState.format = m_depthTextureFormat;
+    depthStencilState.format = mShadowDepthTextureFormat;
     depthStencilState.stencilReadMask = 0;
     depthStencilState.stencilWriteMask = 0;
 

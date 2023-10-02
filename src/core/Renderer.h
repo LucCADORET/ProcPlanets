@@ -33,7 +33,6 @@ class Renderer {
     bool setPlanetPipeline(
         std::vector<VertexAttributes> const& vertexData,
         std::vector<uint32_t> const& indices);
-    bool setShadowPipeline();
     bool setSkyboxPipeline();
     void terminate();
     void terminatePlanetPipeline();
@@ -50,6 +49,7 @@ class Renderer {
     void buildDepthTexture();
     void buildShadowDepthTexture();
     void updateGui(wgpu::RenderPassEncoder renderPass);
+    bool setShadowPipeline();
 
     // (Just aliases to make notations lighter)
     using mat4x4 = glm::mat4x4;
@@ -120,6 +120,7 @@ class Renderer {
     wgpu::TextureView mShadowDepthTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mShadowDepthTexture = nullptr;
     wgpu::TextureFormat mShadowDepthTextureFormat = wgpu::TextureFormat::Depth32Float;
+    wgpu::Sampler mShadowSampler = nullptr;
 
     // skybox related stuff
     wgpu::RenderPipeline mSkyboxPipeline = nullptr;
