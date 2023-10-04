@@ -608,8 +608,9 @@ bool Renderer::setShadowPipeline() {
 
     // the projection should be ortholinear since the light source is infinitely far
     float near = 0.01f, far = 100.0f;
+    float size = 5.0f;
     auto projectionMatrix = glm::ortho(
-        -10.0f, 10.0f, -10.0f, 10.0f, near, far);
+        -size, size, -size, size, near, far);
 
     // we set the lightViewProjMatrix once at pipeline creation, since it won't change
     m_uniforms.lightViewProjMatrix = projectionMatrix * viewMatrix;
