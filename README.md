@@ -21,6 +21,10 @@ Create high-scale planets.
 
 More important is on top (or not)
 
+- shadows:
+  - how to make the shadows less "blocky" ? is there other methods to do the shadows ?
+  - view frustrum of the shadow rendering should change depending on the planet radius (breaks if planet too big)
+  - could add percentage-closer filtering
 - improve the terrain edition for more "earth-like" aspect
   - plateaux
   - less regular "wavyness" with a lot of flat parts but also some high and some deep parts ?

@@ -57,6 +57,7 @@ bool Renderer::init(GLFWwindow* window) {
 
     m_queue = m_device.getQueue();
     buildSwapChain(window);
+    buildShadowDepthTexture();
     return true;
 }
 
@@ -65,6 +66,7 @@ void Renderer::onFrame() {
     m_uniforms.time = static_cast<float>(glfwGetTime());
     m_queue.writeBuffer(m_uniformBuffer, offsetof(SceneUniforms, time), &m_uniforms.time, sizeof(SceneUniforms::time));
 
+    // the "current textureview" could be seen as the "context" in the JS version ?
     TextureView nextTexture = m_swapChain.getCurrentTextureView();
     if (!nextTexture) {
         std::cerr << "Cannot acquire next swap chain texture" << std::endl;
@@ -75,6 +77,40 @@ void Renderer::onFrame() {
     commandEncoderDesc.label = "Command Encoder";
     CommandEncoder encoder = m_device.createCommandEncoder(commandEncoderDesc);
 
+    // SHADOW PASS
+    RenderPassDepthStencilAttachment shadowDepthStencilAttachment;
+    shadowDepthStencilAttachment.view = mShadowDepthTextureView;
+    shadowDepthStencilAttachment.depthClearValue = 1.0f;
+    shadowDepthStencilAttachment.depthLoadOp = LoadOp::Clear;
+    shadowDepthStencilAttachment.depthStoreOp = StoreOp::Store;
+    shadowDepthStencilAttachment.depthReadOnly = false;
+    shadowDepthStencilAttachment.stencilClearValue = 0;
+#ifdef WEBGPU_BACKEND_WGPU
+    shadowDepthStencilAttachment.stencilLoadOp = LoadOp::Clear;
+    shadowDepthStencilAttachment.stencilStoreOp = StoreOp::Store;
+#else
+    shadowDepthStencilAttachment.stencilLoadOp = LoadOp::Undefined;
+    shadowDepthStencilAttachment.stencilStoreOp = StoreOp::Undefined;
+#endif
+    shadowDepthStencilAttachment.stencilReadOnly = false;
+
+    RenderPassDescriptor shadowPassDesc{};
+    shadowPassDesc.colorAttachmentCount = 0;
+    shadowPassDesc.colorAttachments = nullptr;
+    shadowPassDesc.depthStencilAttachment = &shadowDepthStencilAttachment;
+    shadowPassDesc.timestampWriteCount = 0;
+    shadowPassDesc.timestampWrites = nullptr;
+    RenderPassEncoder shadowPass = encoder.beginRenderPass(shadowPassDesc);
+
+    // This should write in the shadow depth texture ?
+    shadowPass.setPipeline(mShadowPipeline);
+    shadowPass.setVertexBuffer(0, m_vertexBuffer, 0, m_vertexCount * sizeof(VertexAttributes));
+    shadowPass.setIndexBuffer(m_indexBuffer, IndexFormat::Uint32, 0, m_indexCount * sizeof(uint32_t));
+    shadowPass.setBindGroup(0, mShadowBindGroup, 0, nullptr);
+    shadowPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
+    shadowPass.end();
+
+    // SKYBOX + SCENE RENDER PASS
     RenderPassDepthStencilAttachment depthStencilAttachment;
     depthStencilAttachment.view = m_depthTextureView;
     depthStencilAttachment.depthClearValue = 1.0f;
@@ -164,12 +200,12 @@ void Renderer::buildSwapChain(GLFWwindow* window) {
     m_swapChain = m_device.createSwapChain(m_surface, m_swapChainDesc);
     std::cout << "Swapchain: " << m_swapChain << std::endl;
 
-    buildDepthBuffer();
+    buildDepthTexture();
 }
 
-// Build a new swapchain if from the current window
+// Build a new depth buffer
 // This has to be re-called if the swap chain changes
-void Renderer::buildDepthBuffer() {
+void Renderer::buildDepthTexture() {
     // Destroy previously allocated texture
     if (m_depthTexture != nullptr) {
         m_depthTextureView.release();
@@ -203,16 +239,44 @@ void Renderer::buildDepthBuffer() {
     std::cout << "Depth texture view: " << m_depthTextureView << std::endl;
 }
 
+void Renderer::buildShadowDepthTexture() {
+    // Create the depth texture
+    TextureDescriptor depthTextureDesc;
+    depthTextureDesc.dimension = TextureDimension::_2D;
+    depthTextureDesc.format = mShadowDepthTextureFormat;
+    depthTextureDesc.mipLevelCount = 1;
+    depthTextureDesc.sampleCount = 1;
+
+    depthTextureDesc.size = {mShadowDepthTextureSize, mShadowDepthTextureSize, 1};
+    depthTextureDesc.usage = TextureUsage::RenderAttachment | TextureUsage::TextureBinding;
+    depthTextureDesc.viewFormatCount = 1;
+    depthTextureDesc.viewFormats = (WGPUTextureFormat*)&mShadowDepthTextureFormat;
+    mShadowDepthTexture = m_device.createTexture(depthTextureDesc);
+    std::cout << "Depth texture: " << mShadowDepthTexture << std::endl;
+
+    // Create the view of the depth texture manipulated by the rasterizer
+    TextureViewDescriptor depthTextureViewDesc;
+    depthTextureViewDesc.aspect = TextureAspect::DepthOnly;
+    depthTextureViewDesc.baseArrayLayer = 0;
+    depthTextureViewDesc.arrayLayerCount = 1;
+    depthTextureViewDesc.baseMipLevel = 0;
+    depthTextureViewDesc.mipLevelCount = 1;
+    depthTextureViewDesc.dimension = TextureViewDimension::_2D;
+    depthTextureViewDesc.format = mShadowDepthTextureFormat;
+    mShadowDepthTextureView = mShadowDepthTexture.createView(depthTextureViewDesc);
+    std::cout << "Depth texture view: " << mShadowDepthTextureView << std::endl;
+}
+
 // create a pipeline from a given resource bundle
 bool Renderer::setPlanetPipeline(
-    std::vector<VertexAttributes> vertexData,
-    std::vector<uint32_t> indices) {
+    std::vector<VertexAttributes> const& vertexData,
+    std::vector<uint32_t> const& indices) {
     m_vertexData = vertexData;
     m_indexData = indices;
 
     // Load the shaders
     // std::cout << "Creating shader module..." << std::endl;
-    string shaderPath = ASSETS_DIR "/spheres/shader.wgsl";
+    string shaderPath = ASSETS_DIR "/planet/shader.wgsl";
     wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
     // std::cout << "Shader module: " << shaderModule << std::endl;
 
@@ -309,9 +373,9 @@ bool Renderer::setPlanetPipeline(
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
 
     // Create binding layouts
-    // If the scene has textures, we will add the bindgroups for it + the sampler of the textures
-    // Otherwise the only binding is our uniform
-    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(1, Default);
+    // Just the uniforms for now: no texture or anything
+    int binGroupEntriesCount = 3;
+    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(binGroupEntriesCount, Default);
 
     // The uniform buffer binding that we already had
     BindGroupLayoutEntry& bindingLayout = bindingLayoutEntries[0];
@@ -319,6 +383,19 @@ bool Renderer::setPlanetPipeline(
     bindingLayout.visibility = ShaderStage::Vertex | ShaderStage::Fragment;
     bindingLayout.buffer.type = BufferBindingType::Uniform;
     bindingLayout.buffer.minBindingSize = sizeof(SceneUniforms);
+
+    // Shadow Sampler
+    BindGroupLayoutEntry& samplerBindingLayout = bindingLayoutEntries[1];
+    samplerBindingLayout.binding = 1;
+    samplerBindingLayout.visibility = ShaderStage::Fragment;
+    samplerBindingLayout.sampler.type = SamplerBindingType::Comparison;
+
+    // The depth texture
+    BindGroupLayoutEntry& baseColorTextureBindingLayout = bindingLayoutEntries[2];
+    baseColorTextureBindingLayout.binding = 2;
+    baseColorTextureBindingLayout.visibility = ShaderStage::Fragment;
+    baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Depth;
+    baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
 
     // Create a bind group layout
     BindGroupLayoutDescriptor bindGroupLayoutDesc{};
@@ -336,7 +413,7 @@ bool Renderer::setPlanetPipeline(
     m_pipeline = m_device.createRenderPipeline(pipelineDesc);
     // std::cout << "Render pipeline: " << m_pipeline << std::endl;
 
-    // Create a sampler
+    // Create a sampler for the textures
     SamplerDescriptor samplerDesc;
     samplerDesc.addressModeU = AddressMode::Repeat;
     samplerDesc.addressModeV = AddressMode::Repeat;
@@ -349,6 +426,12 @@ bool Renderer::setPlanetPipeline(
     samplerDesc.compare = CompareFunction::Undefined;
     samplerDesc.maxAnisotropy = 1;
     m_sampler = m_device.createSampler(samplerDesc);
+
+    // Create the sampler for the shadows
+    SamplerDescriptor shadowSamplerDesc;
+    shadowSamplerDesc.compare = CompareFunction::Less;
+    shadowSamplerDesc.maxAnisotropy = 1;
+    mShadowSampler = m_device.createSampler(shadowSamplerDesc);
 
     // define vertex buffer
     BufferDescriptor bufferDesc;
@@ -382,13 +465,162 @@ bool Renderer::setPlanetPipeline(
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         0.01f, 100.0f);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
-    m_uniforms.lightDirection = glm::normalize(vec4({-54.0f, 7.77f, 2.5f, 0.0f}));
-    m_uniforms.baseColor = {0.32, 0.26, 0.21, 1.0f};
+    m_uniforms.lightDirection = glm::normalize(-mSunPosition);
+    m_uniforms.baseColor = mPlanetAlbedo;
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
 
     // Add the data to the actual bindings
+    std::vector<BindGroupEntry> bindings(binGroupEntriesCount);
+
+    // uniform
+    bindings[0].binding = 0;
+    bindings[0].buffer = m_uniformBuffer;
+    bindings[0].offset = 0;
+    bindings[0].size = sizeof(SceneUniforms);
+
+    // sampler
+    bindings[1].binding = 1;
+    bindings[1].sampler = mShadowSampler;
+
+    // The shadow texture
+    bindings[2].binding = 2;
+    bindings[2].textureView = mShadowDepthTextureView;
+
+    BindGroupDescriptor bindGroupDesc;
+    bindGroupDesc.layout = bindGroupLayout;
+    bindGroupDesc.entryCount = (uint32_t)bindings.size();
+    bindGroupDesc.entries = bindings.data();
+    m_bindGroup = m_device.createBindGroup(bindGroupDesc);
+
+    // Create the shadow pipeline after the planet one
+    setShadowPipeline();
+    return true;
+}
+
+// NOTE: The shadow pipeline MUST be called after the planets pipeline
+// As it relies on values set with it before (light position, various initialized buffers...)
+bool Renderer::setShadowPipeline() {
+    // Load the shaders
+    // std::cout << "Creating shader module..." << std::endl;
+    string shaderPath = ASSETS_DIR "/planet/shadows.wgsl";
+    wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
+    // std::cout << "Shader module: " << shaderModule << std::endl;
+
+    // std::cout << "Creating render pipeline..." << std::endl;
+    RenderPipelineDescriptor pipelineDesc;
+
+    // Vertex fetch
+    std::vector<VertexAttribute> vertexAttribs(6);
+
+    // Position attribute
+    vertexAttribs[0].shaderLocation = 0;
+    vertexAttribs[0].format = VertexFormat::Float32x3;
+    vertexAttribs[0].offset = 0;
+
+    // Normal attribute
+    vertexAttribs[1].shaderLocation = 1;
+    vertexAttribs[1].format = VertexFormat::Float32x3;
+    vertexAttribs[1].offset = offsetof(VertexAttributes, normal);
+
+    // Color attribute
+    vertexAttribs[2].shaderLocation = 2;
+    vertexAttribs[2].format = VertexFormat::Float32x3;
+    vertexAttribs[2].offset = offsetof(VertexAttributes, color);
+
+    // UV attribute
+    vertexAttribs[3].shaderLocation = 3;
+    vertexAttribs[3].format = VertexFormat::Float32x2;
+    vertexAttribs[3].offset = offsetof(VertexAttributes, uv);
+
+    // UV Tangent
+    vertexAttribs[4].shaderLocation = 4;
+    vertexAttribs[4].format = VertexFormat::Float32x3;
+    vertexAttribs[4].offset = offsetof(VertexAttributes, tangent);
+
+    // UV Bitangent
+    vertexAttribs[5].shaderLocation = 5;
+    vertexAttribs[5].format = VertexFormat::Float32x3;
+    vertexAttribs[5].offset = offsetof(VertexAttributes, bitangent);
+
+    VertexBufferLayout vertexBufferLayout;
+    vertexBufferLayout.attributeCount = (uint32_t)vertexAttribs.size();
+    vertexBufferLayout.attributes = vertexAttribs.data();
+    vertexBufferLayout.arrayStride = sizeof(VertexAttributes);
+    vertexBufferLayout.stepMode = VertexStepMode::Vertex;
+
+    pipelineDesc.vertex.bufferCount = 1;
+    pipelineDesc.vertex.buffers = &vertexBufferLayout;
+
+    pipelineDesc.vertex.module = shaderModule;
+    pipelineDesc.vertex.entryPoint = "vs_main";
+    pipelineDesc.vertex.constantCount = 0;
+    pipelineDesc.vertex.constants = nullptr;
+
+    // pipelineDesc.primitive.topology = PrimitiveTopology::LineList; // if you want wireframes
+    pipelineDesc.primitive.topology = PrimitiveTopology::TriangleList;
+    pipelineDesc.primitive.stripIndexFormat = IndexFormat::Undefined;
+    pipelineDesc.primitive.frontFace = FrontFace::CCW;
+    pipelineDesc.primitive.cullMode = CullMode::None;
+
+    DepthStencilState depthStencilState = Default;
+    depthStencilState.depthCompare = CompareFunction::Less;
+    depthStencilState.depthWriteEnabled = true;
+    depthStencilState.format = mShadowDepthTextureFormat;
+    depthStencilState.stencilReadMask = 0;
+    depthStencilState.stencilWriteMask = 0;
+
+    pipelineDesc.depthStencil = &depthStencilState;
+
+    pipelineDesc.multisample.count = 1;
+    pipelineDesc.multisample.mask = ~0u;
+    pipelineDesc.multisample.alphaToCoverageEnabled = false;
+
+    // Create binding layouts
+    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(1, Default);
+
+    // The uniform buffer binding that we already had
+    BindGroupLayoutEntry& bindingLayout = bindingLayoutEntries[0];
+    bindingLayout.binding = 0;
+    bindingLayout.visibility = ShaderStage::Vertex;
+    bindingLayout.buffer.type = BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(SceneUniforms);
+
+    // Create a bind group layout
+    BindGroupLayoutDescriptor bindGroupLayoutDesc{};
+    bindGroupLayoutDesc.entryCount = (uint32_t)bindingLayoutEntries.size();
+    bindGroupLayoutDesc.entries = bindingLayoutEntries.data();
+    BindGroupLayout bindGroupLayout = m_device.createBindGroupLayout(bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    PipelineLayoutDescriptor layoutDesc{};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
+    PipelineLayout layout = m_device.createPipelineLayout(layoutDesc);
+    pipelineDesc.layout = layout;
+
+    mShadowPipeline = m_device.createRenderPipeline(pipelineDesc);
+
+    // the view matrix should be from the light's perspective
+    auto viewMatrix = glm::lookAt(vec3(mSunPosition), vec3(0.0f), vec3(0, 1, 0));
+    // auto viewMatrix = glm::lookAt(-vec3(m_uniforms.lightDirection), vec3(0.0f), vec3(0, 1, 0));
+
+    // the projection should be ortholinear since the light source is infinitely far
+    float near = 0.01f, far = 100.0f;
+    float size = 5.0f;
+    auto projectionMatrix = glm::ortho(
+        -size, size, -size, size, near, far);
+
+    // we set the lightViewProjMatrix once at pipeline creation, since it won't change
+    m_uniforms.lightViewProjMatrix = projectionMatrix * viewMatrix;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, lightViewProjMatrix),
+        &m_uniforms.lightViewProjMatrix,
+        sizeof(SceneUniforms::lightViewProjMatrix));
+
+    // Bing group for the uniform
     std::vector<BindGroupEntry> bindings(1);
 
     // uniform
@@ -401,7 +633,8 @@ bool Renderer::setPlanetPipeline(
     bindGroupDesc.layout = bindGroupLayout;
     bindGroupDesc.entryCount = (uint32_t)bindings.size();
     bindGroupDesc.entries = bindings.data();
-    m_bindGroup = m_device.createBindGroup(bindGroupDesc);
+    mShadowBindGroup = m_device.createBindGroup(bindGroupDesc);
+
     return true;
 }
 
@@ -411,7 +644,7 @@ bool Renderer::setSkyboxPipeline() {
     wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
     std::cout << "Shader module: " << shaderModule << std::endl;
 
-    std::cout << "Creating render pipeline..." << std::endl;
+    std::cout << "Creating skybox render pipeline..." << std::endl;
     RenderPipelineDescriptor pipelineDesc;
 
     // Vertex attributes definition

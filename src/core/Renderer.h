@@ -30,7 +30,9 @@ struct GUISettings {
 class Renderer {
    public:
     bool init(GLFWwindow* window);
-    bool setPlanetPipeline(std::vector<VertexAttributes> vertexData, std::vector<uint32_t> indices);
+    bool setPlanetPipeline(
+        std::vector<VertexAttributes> const& vertexData,
+        std::vector<uint32_t> const& indices);
     bool setSkyboxPipeline();
     void terminate();
     void terminatePlanetPipeline();
@@ -44,8 +46,10 @@ class Renderer {
 
    private:
     void buildSwapChain(GLFWwindow* window);
-    void buildDepthBuffer();
+    void buildDepthTexture();
+    void buildShadowDepthTexture();
     void updateGui(wgpu::RenderPassEncoder renderPass);
+    bool setShadowPipeline();
 
     // (Just aliases to make notations lighter)
     using mat4x4 = glm::mat4x4;
@@ -53,14 +57,12 @@ class Renderer {
     using vec3 = glm::vec3;
     using vec2 = glm::vec2;
 
-    /**
-     * The same structure as in the shader, replicated in C++
-     */
     struct SceneUniforms {
-                // Transform matrices
+        // Transform matrices
         mat4x4 projectionMatrix;
         mat4x4 viewMatrix;
         mat4x4 modelMatrix;
+        mat4x4 lightViewProjMatrix;
 
         // Some more stuff, sometimes unused
         vec4 color;
@@ -72,6 +74,12 @@ class Renderer {
     };
     // Have the compiler check byte alignment
     static_assert(sizeof(SceneUniforms) % 16 == 0);
+
+    // some constant settings
+    // TODO: make it further, it could collide with the model if it gets better
+    // It is used for lighting calculation mostly
+    vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
+    vec4 mPlanetAlbedo = vec4({0.48, 0.39, 0.31, 1.0f});
 
     wgpu::Instance m_instance = nullptr;
     wgpu::Surface m_surface = nullptr;
@@ -110,6 +118,15 @@ class Renderer {
     wgpu::Texture mBaseColorTexture = nullptr;
     wgpu::TextureView mNormalMapTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mNormalMapTexture = nullptr;
+
+    // shadow related stuff
+    wgpu::RenderPipeline mShadowPipeline = nullptr;
+    wgpu::BindGroup mShadowBindGroup = nullptr;
+    unsigned int mShadowDepthTextureSize = 4096;
+    wgpu::TextureView mShadowDepthTextureView = nullptr;
+    wgpu::Texture mShadowDepthTexture = nullptr;
+    wgpu::TextureFormat mShadowDepthTextureFormat = wgpu::TextureFormat::Depth32Float;
+    wgpu::Sampler mShadowSampler = nullptr;
 
     // skybox related stuff
     wgpu::RenderPipeline mSkyboxPipeline = nullptr;
