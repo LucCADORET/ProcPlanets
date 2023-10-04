@@ -465,8 +465,8 @@ bool Renderer::setPlanetPipeline(
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         0.01f, 100.0f);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
-    m_uniforms.lightDirection = glm::normalize(-sunPosition);
-    m_uniforms.baseColor = {0.32, 0.26, 0.21, 1.0f};
+    m_uniforms.lightDirection = glm::normalize(-mSunPosition);
+    m_uniforms.baseColor = mPlanetAlbedo;
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
@@ -603,7 +603,7 @@ bool Renderer::setShadowPipeline() {
     mShadowPipeline = m_device.createRenderPipeline(pipelineDesc);
 
     // the view matrix should be from the light's perspective
-    auto viewMatrix = glm::lookAt(vec3(sunPosition), vec3(0.0f), vec3(0, 1, 0));
+    auto viewMatrix = glm::lookAt(vec3(mSunPosition), vec3(0.0f), vec3(0, 1, 0));
     // auto viewMatrix = glm::lookAt(-vec3(m_uniforms.lightDirection), vec3(0.0f), vec3(0, 1, 0));
 
     // the projection should be ortholinear since the light source is infinitely far

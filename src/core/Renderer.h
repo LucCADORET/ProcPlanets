@@ -78,7 +78,8 @@ class Renderer {
     // some constant settings
     // TODO: make it further, it could collide with the model if it gets better
     // It is used for lighting calculation mostly
-    vec4 sunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
+    vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
+    vec4 mPlanetAlbedo = vec4({0.48, 0.39, 0.31, 1.0f});
 
     wgpu::Instance m_instance = nullptr;
     wgpu::Surface m_surface = nullptr;

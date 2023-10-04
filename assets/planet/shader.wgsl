@@ -90,13 +90,12 @@ fn shadowCalculation(shadowPos: vec3f) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-	let ambiant = uSceneUniforms.baseColor;
+	let albedo = uSceneUniforms.baseColor;
 
 	// diffuse component
-	let lightIntensity = vec3f(0.5, 0.5, 0.5);
 	let lightDirection = normalize(-uSceneUniforms.lightDirection);
 	let incidence = max(dot(lightDirection, vec4f(in.normal, 0.0)), 0.0);
-	let diffuse = vec4f(incidence * lightIntensity, 1.0);
+	let diffuse = vec4f(albedo.xyz * incidence, 1.0);
 
 	// // The specular part
 	let viewDir = normalize(uSceneUniforms.viewPosition - in.worldPosition);
@@ -107,7 +106,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	let lightingFactor: f32 = shadowCalculation(in.shadowPos);       
 
 	// Final output
-	let color: vec4f = ambiant + (lightingFactor * (diffuse + specular));
+	let color: vec4f = (lightingFactor * (diffuse + specular));
 
 	// gamma correction
     let corrected_color = pow(color, vec4f(2.2));
