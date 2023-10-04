@@ -75,6 +75,11 @@ class Renderer {
     // Have the compiler check byte alignment
     static_assert(sizeof(SceneUniforms) % 16 == 0);
 
+    // some constant settings
+    // TODO: make it further, it could collide with the model if it gets better
+    // It is used for lighting calculation mostly
+    vec4 sunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
+
     wgpu::Instance m_instance = nullptr;
     wgpu::Surface m_surface = nullptr;
     wgpu::Adapter m_adapter = nullptr;
@@ -116,8 +121,8 @@ class Renderer {
     // shadow related stuff
     wgpu::RenderPipeline mShadowPipeline = nullptr;
     wgpu::BindGroup mShadowBindGroup = nullptr;
-    unsigned int mShadowDepthTextureSize = 1024;
-    wgpu::TextureView mShadowDepthTextureView = nullptr;  // keep track of it for later cleanup
+    unsigned int mShadowDepthTextureSize = 4096;
+    wgpu::TextureView mShadowDepthTextureView = nullptr;
     wgpu::Texture mShadowDepthTexture = nullptr;
     wgpu::TextureFormat mShadowDepthTextureFormat = wgpu::TextureFormat::Depth32Float;
     wgpu::Sampler mShadowSampler = nullptr;

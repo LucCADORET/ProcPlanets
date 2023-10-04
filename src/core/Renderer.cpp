@@ -92,7 +92,7 @@ void Renderer::onFrame() {
     shadowDepthStencilAttachment.stencilLoadOp = LoadOp::Undefined;
     shadowDepthStencilAttachment.stencilStoreOp = StoreOp::Undefined;
 #endif
-    shadowDepthStencilAttachment.stencilReadOnly = true;
+    shadowDepthStencilAttachment.stencilReadOnly = false;
 
     RenderPassDescriptor shadowPassDesc{};
     shadowPassDesc.colorAttachmentCount = 0;
@@ -247,7 +247,6 @@ void Renderer::buildShadowDepthTexture() {
     depthTextureDesc.mipLevelCount = 1;
     depthTextureDesc.sampleCount = 1;
 
-    // TODO: can use the swapchain size ??
     depthTextureDesc.size = {mShadowDepthTextureSize, mShadowDepthTextureSize, 1};
     depthTextureDesc.usage = TextureUsage::RenderAttachment | TextureUsage::TextureBinding;
     depthTextureDesc.viewFormatCount = 1;
@@ -466,7 +465,7 @@ bool Renderer::setPlanetPipeline(
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         0.01f, 100.0f);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
-    m_uniforms.lightDirection = glm::normalize(vec4({-54.0f, 7.77f, 2.5f, 0.0f}));
+    m_uniforms.lightDirection = glm::normalize(-sunPosition);
     m_uniforms.baseColor = {0.32, 0.26, 0.21, 1.0f};
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
@@ -604,7 +603,8 @@ bool Renderer::setShadowPipeline() {
     mShadowPipeline = m_device.createRenderPipeline(pipelineDesc);
 
     // the view matrix should be from the light's perspective
-    auto viewMatrix = glm::lookAt(-vec3(m_uniforms.lightDirection), vec3(0.0f), vec3(0, 1, 0));
+    auto viewMatrix = glm::lookAt(vec3(sunPosition), vec3(0.0f), vec3(0, 1, 0));
+    // auto viewMatrix = glm::lookAt(-vec3(m_uniforms.lightDirection), vec3(0.0f), vec3(0, 1, 0));
 
     // the projection should be ortholinear since the light source is infinitely far
     float near = 0.01f, far = 100.0f;
