@@ -4,6 +4,8 @@
 
 using VertexAttributes = ResourceManager::VertexAttributes;
 
+// The planet is a cube inflated into a sphere. This class is used to generate one face of the cube
+// It uses a generator that is in charge of making the final shape of the planet
 class FaceGenerator {
    public:
     // TODO: this constructor is dirty: should I do like this ?
@@ -46,18 +48,17 @@ class FaceGenerator {
                 // normalizing from the center will create a sphere
                 glm::vec3 point_on_unit_sphere = glm::normalize(point_on_unit_cube);
 
-                // TODO: add noise
                 // glm::vec3 point_on_planet = shape_generator.compute_elevation(point_on_unit_sphere)
                 glm::vec3 point_on_planet = elevationGenerator.evaluate(point_on_unit_sphere);
 
                 // build the vertex attributes
                 VertexAttributes attributes = {
-                    point_on_planet,       // position;
-                    glm::vec3(0.0f),       // normal, computed later
-                    glm::vec3(0.0f),        // color;
-                    glm::vec2(0.0f),       // uv;
-                    glm::vec3(0.0f),       // tangent;
-                    glm::vec3(0.0f),       // bitangent;
+                    point_on_planet,  // position;
+                    glm::vec3(0.0f),  // normal are computed later
+                    glm::vec3(0.0f),  // color;
+                    glm::vec2(0.0f),  // uv;
+                    glm::vec3(0.0f),  // tangent;
+                    glm::vec3(0.0f),  // bitangent;
                 };
                 vertexData[i] = attributes;
 

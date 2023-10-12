@@ -21,6 +21,7 @@ Create high-scale planets.
 
 More important is on top (or not)
 
+- add a slow rotation of the planet: can give a better idea of the of the looks of the shadows
 - shadows:
   - how to make the shadows less "blocky" ? is there other methods to do the shadows ?
   - view frustrum of the shadow rendering should change depending on the planet radius (breaks if planet too big)

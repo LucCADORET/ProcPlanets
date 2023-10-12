@@ -14,7 +14,7 @@ void PlanetGenerator::generatePlanetData(
         settings.frequency,
         settings.octaves);
 
-    // define the faces normals
+    // define the 6 faces normals
     auto top = glm::vec3(0.0f, 1.0f, 0.0f);
     auto down = glm::vec3(0.0f, -1.0f, 0.0f);
     auto left = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -35,7 +35,8 @@ void PlanetGenerator::generatePlanetData(
         faceGenerator.generateFaceData(vertexData, indices);
     }
 
-    // generate the normals
+    // compute the normals
+    // TODO: could be inproved by computing normals on the edges of the faces
     for (uint32_t i = 0; i < indices.size(); i += 3) {
         auto &v1 = vertexData[indices[i]];
         auto &v2 = vertexData[indices[i + 1]];
@@ -48,7 +49,7 @@ void PlanetGenerator::generatePlanetData(
         v3.normal += face_normal;
     }
 
-    // normalize the normals
+    // final normalization needid
     for (uint32_t i = 0; i < vertexData.size(); i++) {
         vertexData[i].normal = glm::normalize(vertexData[i].normal);
     }
