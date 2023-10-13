@@ -13,10 +13,16 @@ struct SceneUniforms {
     time: f32,
 };
 
+struct VertexOutput {
+	@builtin(position) position: vec4f,
+};
+
+
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;
 
 @vertex
-fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f {
+fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
+	var out: VertexOutput;
   var pos = array<vec2<f32>, 6>(
     vec2(-1.0, 1.0),
     vec2(-1.0, -1.0),
@@ -26,7 +32,8 @@ fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f
     vec2(1.0, 1.0),
   );
 
-  return vec4<f32>(pos[VertexIndex], 0.0, 1.0);
+  out.position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
+  return out;
 }
 
 // Inspired by the seb lague code: https://youtu.be/lctXaT9pxA0?si=pKqieIk5W5wFcSOV&t=942
@@ -61,19 +68,48 @@ fn raySphere(radius: f32, rayOrigin: vec3f, rayDir: vec3f) -> vec2f {
 }
 
 @fragment
-fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
+fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let rayPos: vec3f = uSceneUniforms.viewPosition.xyz;
-  var rayDir: vec3f = vec3f(position.x, position.y, -1.0);
-  rayDir = normalize(rayDir);
-  let hitInfo: vec2f = raySphere(2.0, rayPos, rayDir);
-  let dstToOcean = hitInfo.x;
-  let dstThroughOcean = hitInfo.y;
 
-  // TODO: use the actual depth values
-  if (dstToOcean < 1000.0) {
-    return vec4f(0.00, 0.00, 1.00, 0.5);
+  // TODO: in the future, should depend on the current res
+  // remap to -1,1 + normalize the direciton vector
+  let resolution = vec2f(1600.0, 900.0);
+  let uv: vec2f = (-1.0 + 2.0*in.position.xy / resolution.xy) * 
+		vec2f(resolution.x/resolution.y, 1.0);
+  var rayDir: vec3f = normalize(vec3f(uv, 1.0));
+
+  // Calculate the intersection of the ray with the sphere
+  let sphereRadius = 2.0;
+  let spherePos = vec3f(0.0, 0.0, 0.0);
+  let oc = rayPos - spherePos;
+  let a = dot(rayDir, rayDir);
+  let b = 2.0 * dot(oc, rayDir);
+  let c = dot(oc, oc) - sphereRadius * sphereRadius;
+  let discriminant = b * b - 4.0 * a * c;
+
+  // If the ray intersects the sphere, set the pixel color to white
+  // Otherwise, set the pixel color to black
+  if (discriminant > 0.0)
+  {
+      return vec4f(1.0, 1.0, 1.0, 1.0);
+  }
+  else
+  {
+      return vec4f(0.0, 0.0, 0.0, 0.0);
   }
   
-  // TODO: return the original view texture
-	return vec4f(0.5, 0.6, 0.7, 0.0);
+
+  // // Compute the distance to the sphere
+  // // let hitInfo: vec2f = raySphere(2.0, rayPos, rayDir);
+  // let dstToOcean = hitInfo.x;
+  // let dstThroughOcean = hitInfo.y;
+
+  // // // TODO: use the actual depth values
+  // if (dstToOcean < 1000.0) {
+  //   return vec4f(0.00, 0.00, 1.00, 0.5);
+  // }
+  
+  // // TODO: return the original view texture
+	// // return vec4f(0.5, 0.6, 0.7, 0.0);
+	// return vec4f(x, y, 0.0, 1.0);
 }
