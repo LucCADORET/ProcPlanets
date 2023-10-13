@@ -565,8 +565,8 @@ bool Renderer::setOceanPipeline() {
 
     // Create binding layouts
     // Just the uniforms for now: no texture or anything
-    int binGroupEntriesCount = 1;
-    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(binGroupEntriesCount, Default);
+    int bindGroupEntriesCount = 1;
+    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(bindGroupEntriesCount, Default);
 
     // The uniform buffer binding
     BindGroupLayoutEntry& bindingLayout = bindingLayoutEntries[0];
@@ -610,7 +610,7 @@ bool Renderer::setOceanPipeline() {
     m_queue.writeBuffer(mOceanUniformBuffer, 0, &mOceanUniforms, sizeof(SceneUniforms));
 
     // Add the data to the actual bindings
-    std::vector<BindGroupEntry> bindings(binGroupEntriesCount);
+    std::vector<BindGroupEntry> bindings(bindGroupEntriesCount);
 
     // uniform
     bindings[0].binding = 0;
