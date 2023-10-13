@@ -49,7 +49,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 	  // XY is in (-1, 1) space, Z is in (0, 1) space
 	let posFromLight = uSceneUniforms.lightViewProjMatrix * uSceneUniforms.modelMatrix * vec4(in.position, 1.0);
 
-	// Convert XY to (0, 1)
+	// Convert XY to (0, 1) for fetching the texture
 	// Y is flipped because texture coords are Y-down.
 	out.shadowPos = vec3(
 		posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5),

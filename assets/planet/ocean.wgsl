@@ -15,6 +15,7 @@ struct SceneUniforms {
 
 struct VertexOutput {
 	@builtin(position) position: vec4f,
+	@location(1) worldPosition: vec4f,
 };
 
 
@@ -76,10 +77,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let resolution = vec2f(1600.0, 900.0);
   let uv: vec2f = (-1.0 + 2.0*in.position.xy / resolution.xy) * 
 		vec2f(resolution.x/resolution.y, 1.0);
+
+  // TODO: has to rotated according to the camera position ? (frag world pos ?)
   var rayDir: vec3f = normalize(vec3f(uv, 1.0));
 
   // Calculate the intersection of the ray with the sphere
-  let sphereRadius = 2.0;
+  let sphereRadius = 1.0;
   let spherePos = vec3f(0.0, 0.0, 0.0);
   let oc = rayPos - spherePos;
   let a = dot(rayDir, rayDir);
