@@ -157,6 +157,7 @@ void Renderer::onFrame() {
 
     // The ocean stuff
     renderPass.setPipeline(mOceanPipeline);
+    renderPass.setBindGroup(0, mOceanBindGroup, 0, nullptr);
     renderPass.draw(6, 1, 0, 0);  // draw a double triangle
 
     // We add the GUI drawing commands to the render pass
@@ -582,8 +583,8 @@ bool Renderer::setOceanPipeline() {
 
     // Create the pipeline layout // TODO: should include uniforms. deactivated to test something
     PipelineLayoutDescriptor layoutDesc{};
-    // layoutDesc.bindGroupLayoutCount = 1;
-    // layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
     PipelineLayout layout = m_device.createPipelineLayout(layoutDesc);
     pipelineDesc.layout = layout;
 

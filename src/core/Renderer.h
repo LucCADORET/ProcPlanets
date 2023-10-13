@@ -144,7 +144,6 @@ class Renderer {
     // Ocean stuff
     wgpu::RenderPipeline mOceanPipeline = nullptr;
     wgpu::Buffer mOceanUniformBuffer = nullptr;
-    wgpu::Buffer mOceanVertexBuffer = nullptr;
     wgpu::BindGroup mOceanBindGroup = nullptr;
     SceneUniforms mOceanUniforms;
 
