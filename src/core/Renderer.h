@@ -34,6 +34,7 @@ class Renderer {
         std::vector<VertexAttributes> const& vertexData,
         std::vector<uint32_t> const& indices);
     bool setSkyboxPipeline();
+    bool setOceanPipeline();
     void terminate();
     void terminatePlanetPipeline();
     void onFrame();
@@ -139,6 +140,13 @@ class Renderer {
     vector<ResourceManager::VertexAttributes> mSkyboxVertexData;
     wgpu::TextureView mSkyboxTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mSkyboxTexture = nullptr;
+
+    // Ocean stuff
+    wgpu::RenderPipeline mOceanPipeline = nullptr;
+    wgpu::Buffer mOceanUniformBuffer = nullptr;
+    wgpu::Buffer mOceanVertexBuffer = nullptr;
+    wgpu::BindGroup mOceanBindGroup = nullptr;
+    SceneUniforms mOceanUniforms;
 
     // GUI related stuff
     GUISettings mGUISettings;

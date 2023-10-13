@@ -84,6 +84,9 @@ bool Engine::onInit() {
     // setup the skybox
     m_renderer.setSkyboxPipeline();
 
+    // setup the ocean
+    m_renderer.setOceanPipeline();
+
     // Setup GLFW callbacks
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, onWindowResize);
@@ -97,7 +100,7 @@ bool Engine::onInit() {
 }
 
 void Engine::onFrame() {
-     // if the settings changed, take down the current pipeline and rebuild the planet
+    // if the settings changed, take down the current pipeline and rebuild the planet
     GUISettings settings = m_renderer.getGUISettings();
     if (settings.changed) {
         m_renderer.terminatePlanetPipeline();

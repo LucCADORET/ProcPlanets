@@ -110,7 +110,7 @@ void Renderer::onFrame() {
     shadowPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
     shadowPass.end();
 
-    // SKYBOX + SCENE RENDER PASS
+    // SKYBOX + OCEAN + SCENE RENDER PASS
     RenderPassDepthStencilAttachment depthStencilAttachment;
     depthStencilAttachment.view = m_depthTextureView;
     depthStencilAttachment.depthClearValue = 1.0f;
@@ -147,6 +147,10 @@ void Renderer::onFrame() {
     renderPass.setVertexBuffer(0, mSkyboxVertexBuffer, 0, mSkyboxVertexCount * sizeof(VertexAttributes));
     renderPass.setBindGroup(0, mSkyboxBindGroup, 0, nullptr);
     renderPass.draw(mSkyboxVertexCount, 1, 0, 0);
+
+    // The ocean stuff
+    renderPass.setPipeline(mOceanPipeline);
+    renderPass.draw(3, 1, 0, 0);  // draw a double triangle
 
     // the whole scene stuff
     renderPass.setPipeline(m_pipeline);
@@ -496,6 +500,128 @@ bool Renderer::setPlanetPipeline(
 
     // Create the shadow pipeline after the planet one
     setShadowPipeline();
+    return true;
+}
+
+// create the ocean pipeline (mostly a shader)
+bool Renderer::setOceanPipeline() {
+    // Load the shaders
+    // std::cout << "Creating shader module..." << std::endl;
+    string shaderPath = ASSETS_DIR "/planet/ocean.wgsl";
+    wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
+    // std::cout << "Shader module: " << shaderModule << std::endl;
+
+    // std::cout << "Creating render pipeline..." << std::endl;
+    RenderPipelineDescriptor pipelineDesc;
+    pipelineDesc.vertex.bufferCount = 0;
+    pipelineDesc.vertex.buffers = nullptr;
+    pipelineDesc.vertex.module = shaderModule;
+    pipelineDesc.vertex.entryPoint = "vs_main";
+    pipelineDesc.vertex.constantCount = 0;
+    pipelineDesc.vertex.constants = nullptr;
+
+    // pipelineDesc.primitive.topology = PrimitiveTopology::LineList; // if you want wireframes
+    pipelineDesc.primitive.topology = PrimitiveTopology::TriangleList;
+    pipelineDesc.primitive.stripIndexFormat = IndexFormat::Undefined;
+    pipelineDesc.primitive.frontFace = FrontFace::CCW;
+    pipelineDesc.primitive.cullMode = CullMode::None;
+
+    FragmentState fragmentState;
+    pipelineDesc.fragment = &fragmentState;
+    fragmentState.module = shaderModule;
+    fragmentState.entryPoint = "fs_main";
+    fragmentState.constantCount = 0;
+    fragmentState.constants = nullptr;
+
+    BlendState blendState;
+    blendState.color.srcFactor = BlendFactor::SrcAlpha;
+    blendState.color.dstFactor = BlendFactor::OneMinusSrcAlpha;
+    blendState.color.operation = BlendOperation::Add;
+    blendState.alpha.srcFactor = BlendFactor::Zero;
+    blendState.alpha.dstFactor = BlendFactor::One;
+    blendState.alpha.operation = BlendOperation::Add;
+
+    ColorTargetState colorTarget;
+    colorTarget.format = m_swapChainFormat;
+    colorTarget.blend = &blendState;
+    colorTarget.writeMask = ColorWriteMask::All;
+
+    fragmentState.targetCount = 1;
+    fragmentState.targets = &colorTarget;
+
+    DepthStencilState depthStencilState = Default;
+    depthStencilState.depthCompare = CompareFunction::Less;
+    depthStencilState.depthWriteEnabled = true;
+    depthStencilState.format = m_depthTextureFormat;
+    depthStencilState.stencilReadMask = 0;
+    depthStencilState.stencilWriteMask = 0;
+
+    pipelineDesc.depthStencil = &depthStencilState;
+
+    pipelineDesc.multisample.count = 1;
+    pipelineDesc.multisample.mask = ~0u;
+    pipelineDesc.multisample.alphaToCoverageEnabled = false;
+
+    // Create binding layouts
+    // Just the uniforms for now: no texture or anything
+    int binGroupEntriesCount = 1;
+    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(binGroupEntriesCount, Default);
+
+    // The uniform buffer binding
+    BindGroupLayoutEntry& bindingLayout = bindingLayoutEntries[0];
+    bindingLayout.binding = 0;
+    bindingLayout.visibility = ShaderStage::Vertex | ShaderStage::Fragment;
+    bindingLayout.buffer.type = BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(SceneUniforms);
+
+    // Create a bind group layout
+    BindGroupLayoutDescriptor bindGroupLayoutDesc{};
+    bindGroupLayoutDesc.entryCount = (uint32_t)bindingLayoutEntries.size();
+    bindGroupLayoutDesc.entries = bindingLayoutEntries.data();
+    BindGroupLayout bindGroupLayout = m_device.createBindGroupLayout(bindGroupLayoutDesc);
+
+    // Create the pipeline layout // TODO: should include uniforms. deactivated to test something
+    PipelineLayoutDescriptor layoutDesc{};
+    // layoutDesc.bindGroupLayoutCount = 1;
+    // layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
+    PipelineLayout layout = m_device.createPipelineLayout(layoutDesc);
+    pipelineDesc.layout = layout;
+
+    mOceanPipeline = m_device.createRenderPipeline(pipelineDesc);
+
+    // Create uniform buffer
+    BufferDescriptor bufferDesc;
+    bufferDesc.size = sizeof(SceneUniforms);
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+    mOceanUniformBuffer = m_device.createBuffer(bufferDesc);
+
+    // Upload the initial value of the uniforms
+    mOceanUniforms.modelMatrix = mat4x4(1.0);
+    mOceanUniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
+    mOceanUniforms.projectionMatrix = glm::perspective(
+        glm::radians(45.0f),
+        float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
+        0.01f, 100.0f);
+    mOceanUniforms.lightDirection = glm::normalize(-mSunPosition);
+    mOceanUniforms.viewPosition = vec4(0.0f);
+    mOceanUniforms.time = 1.0f;
+    m_queue.writeBuffer(mOceanUniformBuffer, 0, &mOceanUniforms, sizeof(SceneUniforms));
+
+    // Add the data to the actual bindings
+    std::vector<BindGroupEntry> bindings(binGroupEntriesCount);
+
+    // uniform
+    bindings[0].binding = 0;
+    bindings[0].buffer = mOceanUniformBuffer;
+    bindings[0].offset = 0;
+    bindings[0].size = sizeof(SceneUniforms);
+
+    BindGroupDescriptor bindGroupDesc;
+    bindGroupDesc.layout = bindGroupLayout;
+    bindGroupDesc.entryCount = (uint32_t)bindings.size();
+    bindGroupDesc.entries = bindings.data();
+    mOceanBindGroup = m_device.createBindGroup(bindGroupDesc);
     return true;
 }
 
