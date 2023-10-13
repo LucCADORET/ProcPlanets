@@ -143,9 +143,7 @@ class Renderer {
 
     // Ocean stuff
     wgpu::RenderPipeline mOceanPipeline = nullptr;
-    wgpu::Buffer mOceanUniformBuffer = nullptr;
     wgpu::BindGroup mOceanBindGroup = nullptr;
-    SceneUniforms mOceanUniforms;
 
     // GUI related stuff
     GUISettings mGUISettings;

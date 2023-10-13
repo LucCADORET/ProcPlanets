@@ -56,6 +56,14 @@ bool Renderer::init(GLFWwindow* window) {
     });
 
     m_queue = m_device.getQueue();
+
+    // Create the uniform buffer that will be common to the planet, shadow and ocean pipeline
+    BufferDescriptor bufferDesc;
+    bufferDesc.size = sizeof(SceneUniforms);
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+    m_uniformBuffer = m_device.createBuffer(bufferDesc);
+
     buildSwapChain(window);
     buildShadowDepthTexture();
     return true;
@@ -456,12 +464,6 @@ bool Renderer::setPlanetPipeline(
     m_queue.writeBuffer(m_indexBuffer, 0, m_indexData.data(), bufferDesc.size);
     m_indexCount = static_cast<int>(m_indexData.size());
 
-    // Create uniform buffer
-    bufferDesc.size = sizeof(SceneUniforms);
-    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
-    bufferDesc.mappedAtCreation = false;
-    m_uniformBuffer = m_device.createBuffer(bufferDesc);
-
     // Upload the initial value of the uniforms
     m_uniforms.modelMatrix = mat4x4(1.0);
     m_uniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
@@ -590,31 +592,12 @@ bool Renderer::setOceanPipeline() {
 
     mOceanPipeline = m_device.createRenderPipeline(pipelineDesc);
 
-    // Create uniform buffer
-    BufferDescriptor bufferDesc;
-    bufferDesc.size = sizeof(SceneUniforms);
-    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
-    bufferDesc.mappedAtCreation = false;
-    mOceanUniformBuffer = m_device.createBuffer(bufferDesc);
-
-    // Upload the initial value of the uniforms
-    mOceanUniforms.modelMatrix = mat4x4(1.0);
-    mOceanUniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
-    mOceanUniforms.projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
-        float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
-        0.01f, 100.0f);
-    mOceanUniforms.lightDirection = glm::normalize(-mSunPosition);
-    mOceanUniforms.viewPosition = vec4(0.0f);
-    mOceanUniforms.time = 1.0f;
-    m_queue.writeBuffer(mOceanUniformBuffer, 0, &mOceanUniforms, sizeof(SceneUniforms));
-
     // Add the data to the actual bindings
     std::vector<BindGroupEntry> bindings(bindGroupEntriesCount);
 
     // uniform
     bindings[0].binding = 0;
-    bindings[0].buffer = mOceanUniformBuffer;
+    bindings[0].buffer = m_uniformBuffer;
     bindings[0].offset = 0;
     bindings[0].size = sizeof(SceneUniforms);
 
