@@ -148,16 +148,16 @@ void Renderer::onFrame() {
     renderPass.setBindGroup(0, mSkyboxBindGroup, 0, nullptr);
     renderPass.draw(mSkyboxVertexCount, 1, 0, 0);
 
-    // The ocean stuff
-    renderPass.setPipeline(mOceanPipeline);
-    renderPass.draw(3, 1, 0, 0);  // draw a double triangle
-
     // the whole scene stuff
     renderPass.setPipeline(m_pipeline);
     renderPass.setVertexBuffer(0, m_vertexBuffer, 0, m_vertexCount * sizeof(VertexAttributes));
     renderPass.setIndexBuffer(m_indexBuffer, IndexFormat::Uint32, 0, m_indexCount * sizeof(uint32_t));
     renderPass.setBindGroup(0, m_bindGroup, 0, nullptr);
     renderPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
+
+    // The ocean stuff
+    renderPass.setPipeline(mOceanPipeline);
+    renderPass.draw(6, 1, 0, 0);  // draw a double triangle
 
     // We add the GUI drawing commands to the render pass
     updateGui(renderPass);
