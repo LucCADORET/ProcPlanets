@@ -61,7 +61,7 @@ fn raySphere(radius: f32, rayOrigin: vec3f, rayDir: vec3f) -> vec2f {
     let dstToSphereNear = max(0.0, (-b -s) / (2.0 * a));
     let dstToSphereFar = (-b + s) / (2.0 * a);
     if(dstToSphereFar >= 0.0) {
-      return vec2f(dstToSphereNear, dstToSphereNear - dstToSphereFar);
+      return vec2f(dstToSphereNear, dstToSphereFar - dstToSphereNear);
     }
   }
 
