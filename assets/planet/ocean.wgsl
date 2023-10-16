@@ -20,6 +20,8 @@ struct VertexOutput {
 
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;
+@group(0) @binding(1) var depthSampler: sampler_comparison;
+@group(0) @binding(2) var depthTexture: texture_depth_2d;
 
 @vertex
 fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {

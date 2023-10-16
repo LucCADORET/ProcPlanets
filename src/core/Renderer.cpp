@@ -103,6 +103,7 @@ void Renderer::onFrame() {
     shadowDepthStencilAttachment.stencilReadOnly = false;
 
     RenderPassDescriptor shadowPassDesc{};
+    shadowPassDesc.label = "Shadow Render Pass";
     shadowPassDesc.colorAttachmentCount = 0;
     shadowPassDesc.colorAttachments = nullptr;
     shadowPassDesc.depthStencilAttachment = &shadowDepthStencilAttachment;
@@ -133,16 +134,17 @@ void Renderer::onFrame() {
     depthStencilAttachment.stencilLoadOp = LoadOp::Undefined;
     depthStencilAttachment.stencilStoreOp = StoreOp::Undefined;
 #endif
-    depthStencilAttachment.stencilReadOnly = true;
+    depthStencilAttachment.stencilReadOnly = false;
 
     RenderPassColorAttachment renderPassColorAttachment{};
     renderPassColorAttachment.view = nextTexture;
     renderPassColorAttachment.resolveTarget = nullptr;
     renderPassColorAttachment.loadOp = LoadOp::Clear;
     renderPassColorAttachment.storeOp = StoreOp::Store;
-    renderPassColorAttachment.clearValue = Color{0.65, 0.67, 1, 1.0};
+    renderPassColorAttachment.clearValue = Color{0.65, 0.67, 1, 0.0};
 
     RenderPassDescriptor renderPassDesc{};
+    renderPassDesc.label = "Scene Render pass";
     renderPassDesc.colorAttachmentCount = 1;
     renderPassDesc.colorAttachments = &renderPassColorAttachment;
     renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
@@ -163,15 +165,26 @@ void Renderer::onFrame() {
     renderPass.setBindGroup(0, m_bindGroup, 0, nullptr);
     renderPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
 
-    // The ocean stuff
-    renderPass.setPipeline(mOceanPipeline);
-    renderPass.setBindGroup(0, mOceanBindGroup, 0, nullptr);
-    renderPass.draw(6, 1, 0, 0);  // draw a double triangle
-
     // We add the GUI drawing commands to the render pass
     updateGui(renderPass);
 
     renderPass.end();
+
+    // OCEAN RENDER PASS
+    RenderPassDescriptor oceanRenderPassDesc{};
+    oceanRenderPassDesc.label = "Ocean Render Pass";
+    oceanRenderPassDesc.colorAttachmentCount = 1;
+    oceanRenderPassDesc.colorAttachments = &renderPassColorAttachment;
+    oceanRenderPassDesc.depthStencilAttachment = nullptr;
+    oceanRenderPassDesc.timestampWriteCount = 0;
+    oceanRenderPassDesc.timestampWrites = nullptr;
+    RenderPassEncoder oceanRenderPass = encoder.beginRenderPass(oceanRenderPassDesc);
+
+    // The ocean stuff
+    oceanRenderPass.setPipeline(mOceanPipeline);
+    oceanRenderPass.setBindGroup(0, mOceanBindGroup, 0, nullptr);
+    oceanRenderPass.draw(6, 1, 0, 0);  // draw a double triangle
+    oceanRenderPass.end();
 
     nextTexture.release();
 
@@ -217,7 +230,7 @@ void Renderer::buildSwapChain(GLFWwindow* window) {
 }
 
 // Build a new depth buffer
-// This has to be re-called if the swap chain changes
+// This has to be re-called if the swap chain changes (e.g. on window resize)
 void Renderer::buildDepthTexture() {
     // Destroy previously allocated texture
     if (m_depthTexture != nullptr) {
@@ -232,8 +245,9 @@ void Renderer::buildDepthTexture() {
     depthTextureDesc.format = m_depthTextureFormat;
     depthTextureDesc.mipLevelCount = 1;
     depthTextureDesc.sampleCount = 1;
+
     depthTextureDesc.size = {m_swapChainDesc.width, m_swapChainDesc.height, 1};
-    depthTextureDesc.usage = TextureUsage::RenderAttachment;
+    depthTextureDesc.usage = TextureUsage::RenderAttachment | TextureUsage::TextureBinding;
     depthTextureDesc.viewFormatCount = 1;
     depthTextureDesc.viewFormats = (WGPUTextureFormat*)&m_depthTextureFormat;
     m_depthTexture = m_device.createTexture(depthTextureDesc);
@@ -426,20 +440,6 @@ bool Renderer::setPlanetPipeline(
     m_pipeline = m_device.createRenderPipeline(pipelineDesc);
     // std::cout << "Render pipeline: " << m_pipeline << std::endl;
 
-    // Create a sampler for the textures
-    SamplerDescriptor samplerDesc;
-    samplerDesc.addressModeU = AddressMode::Repeat;
-    samplerDesc.addressModeV = AddressMode::Repeat;
-    samplerDesc.addressModeW = AddressMode::Repeat;
-    samplerDesc.magFilter = FilterMode::Linear;
-    samplerDesc.minFilter = FilterMode::Linear;
-    samplerDesc.mipmapFilter = MipmapFilterMode::Linear;
-    samplerDesc.lodMinClamp = 0.0f;
-    samplerDesc.lodMaxClamp = 8.0f;
-    samplerDesc.compare = CompareFunction::Undefined;
-    samplerDesc.maxAnisotropy = 1;
-    m_sampler = m_device.createSampler(samplerDesc);
-
     // Create the sampler for the shadows
     SamplerDescriptor shadowSamplerDesc;
     shadowSamplerDesc.compare = CompareFunction::Less;
@@ -559,7 +559,7 @@ bool Renderer::setOceanPipeline() {
     depthStencilState.stencilReadMask = 0;
     depthStencilState.stencilWriteMask = 0;
 
-    pipelineDesc.depthStencil = &depthStencilState;
+    // pipelineDesc.depthStencil = &depthStencilState;
 
     pipelineDesc.multisample.count = 1;
     pipelineDesc.multisample.mask = ~0u;
@@ -567,7 +567,7 @@ bool Renderer::setOceanPipeline() {
 
     // Create binding layouts
     // Just the uniforms for now: no texture or anything
-    int bindGroupEntriesCount = 1;
+    int bindGroupEntriesCount = 3;
     std::vector<BindGroupLayoutEntry> bindingLayoutEntries(bindGroupEntriesCount, Default);
 
     // The uniform buffer binding
@@ -576,6 +576,19 @@ bool Renderer::setOceanPipeline() {
     bindingLayout.visibility = ShaderStage::Vertex | ShaderStage::Fragment;
     bindingLayout.buffer.type = BufferBindingType::Uniform;
     bindingLayout.buffer.minBindingSize = sizeof(SceneUniforms);
+
+    // Planet scene depth texture sampler
+    BindGroupLayoutEntry& samplerBindingLayout = bindingLayoutEntries[1];
+    samplerBindingLayout.binding = 1;
+    samplerBindingLayout.visibility = ShaderStage::Fragment;
+    samplerBindingLayout.sampler.type = SamplerBindingType::Comparison;
+
+    // The depth texture
+    BindGroupLayoutEntry& baseColorTextureBindingLayout = bindingLayoutEntries[2];
+    baseColorTextureBindingLayout.binding = 2;
+    baseColorTextureBindingLayout.visibility = ShaderStage::Fragment;
+    baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Depth;
+    baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
 
     // Create a bind group layout
     BindGroupLayoutDescriptor bindGroupLayoutDesc{};
@@ -592,6 +605,12 @@ bool Renderer::setOceanPipeline() {
 
     mOceanPipeline = m_device.createRenderPipeline(pipelineDesc);
 
+    // Create a sampler for the textures
+    SamplerDescriptor samplerDesc;
+    samplerDesc.compare = CompareFunction::Less;
+    samplerDesc.maxAnisotropy = 1;
+    m_sampler = m_device.createSampler(samplerDesc);
+
     // Add the data to the actual bindings
     std::vector<BindGroupEntry> bindings(bindGroupEntriesCount);
 
@@ -600,6 +619,14 @@ bool Renderer::setOceanPipeline() {
     bindings[0].buffer = m_uniformBuffer;
     bindings[0].offset = 0;
     bindings[0].size = sizeof(SceneUniforms);
+
+    // sampler
+    bindings[1].binding = 1;
+    bindings[1].sampler = m_sampler;
+
+    // The shadow texture
+    bindings[2].binding = 2;
+    bindings[2].textureView = m_depthTextureView;
 
     BindGroupDescriptor bindGroupDesc;
     bindGroupDesc.layout = bindGroupLayout;
@@ -1065,9 +1092,7 @@ void Renderer::terminatePlanetPipeline() {
     // check if there's something to release
     if (m_pipeline != nullptr) {
         m_pipeline.release();
-        m_uniformBuffer.release();
         m_bindGroup.release();
-        m_sampler.release();
 
         m_vertexBuffer.destroy();
         m_vertexBuffer.release();
@@ -1078,6 +1103,9 @@ void Renderer::terminatePlanetPipeline() {
 
 void Renderer::terminate() {
     terminatePlanetPipeline();
+
+    m_uniformBuffer.release();
+    m_sampler.release();
 
     m_depthTextureView.release();
     m_depthTexture.destroy();
