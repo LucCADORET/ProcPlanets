@@ -24,6 +24,8 @@ struct VertexOutput {
 @vertex
 fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
 	var out: VertexOutput;
+
+  // the vertices that build the plane in front of the camera
   var pos = array<vec2<f32>, 6>(
     vec2(-1.0, 1.0),
     vec2(-1.0, -1.0),
@@ -73,16 +75,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let rayPos: vec3f = uSceneUniforms.viewPosition.xyz;
 
   // TODO: in the future, should depend on the current res
-  // remap to -1,1 + normalize the direciton vector
+  // remap to -1,1 + normalize the direction vector
   let resolution = vec2f(1600.0, 900.0);
   let uv: vec2f = (-1.0 + 2.0*in.position.xy / resolution.xy) * 
 		vec2f(resolution.x/resolution.y, 1.0);
 
-  // TODO: has to rotated according to the camera position ? (frag world pos ?)
-  var rayDir: vec3f = normalize(vec3f(uv, 1.0));
+  // Rotate the way according to the current view matrix
+  var rayDir: vec3f = normalize(vec3f(uv, 2.0));
+  rayDir = (vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz;
 
   // Calculate the intersection of the ray with the sphere
-  let sphereRadius = 1.0;
+  let sphereRadius = 2.0;
   let spherePos = vec3f(0.0, 0.0, 0.0);
   let oc = rayPos - spherePos;
   let a = dot(rayDir, rayDir);
@@ -94,7 +97,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   // Otherwise, set the pixel color to black
   if (discriminant > 0.0)
   {
-      return vec4f(1.0, 1.0, 1.0, 1.0);
+    return vec4f(0.00, 0.00, 1.00, 0.5);
   }
   else
   {
