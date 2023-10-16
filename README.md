@@ -21,6 +21,7 @@ Create high-scale planets.
 
 More important is on top (or not)
 
+- can delete the depth stencil of the ocean pipeline
 - add a slow rotation of the planet: can give a better idea of the of the looks of the shadows
 - shadows:
   - how to make the shadows less "blocky" ? is there other methods to do the shadows ?

@@ -95,15 +95,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let c = dot(oc, oc) - sphereRadius * sphereRadius;
   let discriminant = b * b - 4.0 * a * c;
 
+  let visibility = textureSampleCompare(
+    depthTexture, depthSampler,
+    in.position.xy, discriminant
+  );
+
   // If the ray intersects the sphere, set the pixel color to white
   // Otherwise, set the pixel color to black
   if (discriminant > 0.0)
-  {
-    return vec4f(0.00, 0.00, 1.00, 0.5);
+  {    
+    return vec4f(visibility, 0.00, 1.00, 0.5);
   }
   else
   {
-      return vec4f(0.0, 0.0, 0.0, 0.0);
+    return vec4f(0.0, 0.0, 0.0, 0.0);
   }
   
 

@@ -141,7 +141,7 @@ void Renderer::onFrame() {
     renderPassColorAttachment.resolveTarget = nullptr;
     renderPassColorAttachment.loadOp = LoadOp::Clear;
     renderPassColorAttachment.storeOp = StoreOp::Store;
-    renderPassColorAttachment.clearValue = Color{0.65, 0.67, 1, 0.0};
+    renderPassColorAttachment.clearValue = Color{0.65, 0.67, 1, 1.0};
 
     RenderPassDescriptor renderPassDesc{};
     renderPassDesc.label = "Scene Render pass";
@@ -152,11 +152,11 @@ void Renderer::onFrame() {
     renderPassDesc.timestampWrites = nullptr;
     RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
 
-    // the skybox stuff
-    renderPass.setPipeline(mSkyboxPipeline);
-    renderPass.setVertexBuffer(0, mSkyboxVertexBuffer, 0, mSkyboxVertexCount * sizeof(VertexAttributes));
-    renderPass.setBindGroup(0, mSkyboxBindGroup, 0, nullptr);
-    renderPass.draw(mSkyboxVertexCount, 1, 0, 0);
+    // // the skybox stuff
+    // renderPass.setPipeline(mSkyboxPipeline);
+    // renderPass.setVertexBuffer(0, mSkyboxVertexBuffer, 0, mSkyboxVertexCount * sizeof(VertexAttributes));
+    // renderPass.setBindGroup(0, mSkyboxBindGroup, 0, nullptr);
+    // renderPass.draw(mSkyboxVertexCount, 1, 0, 0);
 
     // the whole scene stuff
     renderPass.setPipeline(m_pipeline);
@@ -186,6 +186,7 @@ void Renderer::onFrame() {
     oceanRenderPass.setPipeline(mOceanPipeline);
     oceanRenderPass.setBindGroup(0, mOceanBindGroup, 0, nullptr);
     oceanRenderPass.draw(6, 1, 0, 0);  // draw a double triangle
+
     oceanRenderPass.end();
 
     nextTexture.release();
@@ -553,15 +554,6 @@ bool Renderer::setOceanPipeline() {
 
     fragmentState.targetCount = 1;
     fragmentState.targets = &colorTarget;
-
-    DepthStencilState depthStencilState = Default;
-    depthStencilState.depthCompare = CompareFunction::Less;
-    depthStencilState.depthWriteEnabled = true;
-    depthStencilState.format = m_depthTextureFormat;
-    depthStencilState.stencilReadMask = 0;
-    depthStencilState.stencilWriteMask = 0;
-
-    // pipelineDesc.depthStencil = &depthStencilState;
 
     pipelineDesc.multisample.count = 1;
     pipelineDesc.multisample.mask = ~0u;
