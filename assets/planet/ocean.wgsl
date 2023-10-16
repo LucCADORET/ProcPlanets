@@ -3,6 +3,7 @@
  */
 struct SceneUniforms {
     projectionMatrix: mat4x4f,
+    invProjectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
     modelMatrix: mat4x4f,
     lightViewProjMatrix: mat4x4f,
@@ -20,7 +21,7 @@ struct VertexOutput {
 
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;
-@group(0) @binding(1) var depthSampler: sampler_comparison;
+@group(0) @binding(1) var depthSampler: sampler;
 @group(0) @binding(2) var depthTexture: texture_depth_2d;
 
 @vertex
@@ -74,7 +75,7 @@ fn raySphere(radius: f32, rayOrigin: vec3f, rayDir: vec3f) -> vec2f {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-  let rayPos: vec3f = uSceneUniforms.viewPosition.xyz;
+  let eyePos: vec3f = uSceneUniforms.viewPosition.xyz; // TODO: rename "eyePos"
 
   // TODO: in the future, should depend on the current res
   // remap to -1,1 + normalize the direction vector
@@ -83,46 +84,49 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 		vec2f(resolution.x/resolution.y, 1.0);
 
   // Rotate the way according to the current view matrix
-  var rayDir: vec3f = normalize(vec3f(uv, 2.0));
+  // TODO: I think it's not the right direction !
+  var rayDir: vec3f = normalize(vec3f(uv, -1.0));
   rayDir = (vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz;
 
   // Calculate the intersection of the ray with the sphere
-  let sphereRadius = 2.0;
+  let sphereRadius = 3.7;
   let spherePos = vec3f(0.0, 0.0, 0.0);
-  let oc = rayPos - spherePos;
+  let oc = eyePos - spherePos;
   let a = dot(rayDir, rayDir);
   let b = 2.0 * dot(oc, rayDir);
   let c = dot(oc, oc) - sphereRadius * sphereRadius;
   let discriminant = b * b - 4.0 * a * c;
-
-  let visibility = textureSampleCompare(
+  
+  let scene_depth: f32 = textureSample(
     depthTexture, depthSampler,
-    in.position.xy, discriminant
+    uv
   );
 
   // If the ray intersects the sphere, set the pixel color to white
+  // TODO: 
   // Otherwise, set the pixel color to black
   if (discriminant > 0.0)
-  {    
-    return vec4f(visibility, 0.00, 1.00, 0.5);
+  {     
+    let s: f32 = sqrt(discriminant);
+    let t1 = (-b - s) / (2.0 * a);
+    let t2 = (-b + s) / (2.0 * a);
+
+    // Use the closest intersection point
+    let ocean_distance = min(t1, t2);
+
+    // TODO: I have the distance in world space... what now ?
+    // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
+    // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
+    let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(uv, scene_depth, 1.0);
+    let pixel_position: vec3f = upos.xyz / upos.w;
+    let planet_distance = length(pixel_position - eyePos);
+    if (ocean_distance < planet_distance) {
+      return vec4f(0.0, 0.00, 1.00, 0.5);
+    }
+    return vec4f(0.0, 0.00, 1.00, 0.0);
   }
   else
   {
     return vec4f(0.0, 0.0, 0.0, 0.0);
   }
-  
-
-  // // Compute the distance to the sphere
-  // // let hitInfo: vec2f = raySphere(2.0, rayPos, rayDir);
-  // let dstToOcean = hitInfo.x;
-  // let dstThroughOcean = hitInfo.y;
-
-  // // // TODO: use the actual depth values
-  // if (dstToOcean < 1000.0) {
-  //   return vec4f(0.00, 0.00, 1.00, 0.5);
-  // }
-  
-  // // TODO: return the original view texture
-	// // return vec4f(0.5, 0.6, 0.7, 0.0);
-	// return vec4f(x, y, 0.0, 1.0);
 }

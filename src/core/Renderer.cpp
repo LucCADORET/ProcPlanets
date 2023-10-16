@@ -474,6 +474,7 @@ bool Renderer::setPlanetPipeline(
         glm::radians(45.0f),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         0.01f, 100.0f);
+    m_uniforms.invProjectionMatrix = glm::inverse(m_uniforms.projectionMatrix);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
     m_uniforms.lightDirection = glm::normalize(-mSunPosition);
     m_uniforms.baseColor = mPlanetAlbedo;
@@ -575,7 +576,7 @@ bool Renderer::setOceanPipeline() {
     BindGroupLayoutEntry& samplerBindingLayout = bindingLayoutEntries[1];
     samplerBindingLayout.binding = 1;
     samplerBindingLayout.visibility = ShaderStage::Fragment;
-    samplerBindingLayout.sampler.type = SamplerBindingType::Comparison;
+    samplerBindingLayout.sampler.type = SamplerBindingType::Filtering;
 
     // The depth texture
     BindGroupLayoutEntry& baseColorTextureBindingLayout = bindingLayoutEntries[2];
@@ -601,7 +602,7 @@ bool Renderer::setOceanPipeline() {
 
     // Create a sampler for the textures
     SamplerDescriptor samplerDesc;
-    samplerDesc.compare = CompareFunction::Less;
+    samplerDesc.compare = CompareFunction::Undefined;
     samplerDesc.maxAnisotropy = 1;
     m_sampler = m_device.createSampler(samplerDesc);
 

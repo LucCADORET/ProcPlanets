@@ -19,6 +19,7 @@ struct VertexOutput {
  */
 struct SceneUniforms {
     projectionMatrix: mat4x4f,
+    invProjectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
     modelMatrix: mat4x4f,
 	lightViewProjMatrix: mat4x4f,

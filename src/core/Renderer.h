@@ -61,6 +61,7 @@ class Renderer {
     struct SceneUniforms {
         // Transform matrices
         mat4x4 projectionMatrix;
+        mat4x4 invProjectionMatrix;
         mat4x4 viewMatrix;
         mat4x4 modelMatrix;
         mat4x4 lightViewProjMatrix;
