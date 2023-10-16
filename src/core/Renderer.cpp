@@ -171,6 +171,8 @@ void Renderer::onFrame() {
     renderPass.end();
 
     // OCEAN RENDER PASS
+    renderPassColorAttachment.loadOp = LoadOp::Load; // Load the texture of the previous render passes
+
     RenderPassDescriptor oceanRenderPassDesc{};
     oceanRenderPassDesc.label = "Ocean Render Pass";
     oceanRenderPassDesc.colorAttachmentCount = 1;
