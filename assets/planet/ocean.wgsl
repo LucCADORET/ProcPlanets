@@ -17,6 +17,7 @@ struct SceneUniforms {
 struct VertexOutput {
 	@builtin(position) position: vec4f,
 	@location(1) worldPosition: vec4f,
+  @location(2) uv: vec2f,
 };
 
 
@@ -39,6 +40,9 @@ fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   );
 
   out.position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
+
+  // invert y and put in 0,1 range
+  out.uv = out.position.xy * vec2(0.5, -0.5) + vec2(0.5);
   return out;
 }
 
@@ -78,14 +82,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let eyePos: vec3f = uSceneUniforms.viewPosition.xyz; // TODO: rename "eyePos"
 
   // TODO: in the future, should depend on the current res
-  // remap to -1,1 + normalize the direction vector
+  // Build the ray dir: remap fragment position to 0,0, 
   let resolution = vec2f(1600.0, 900.0);
-  let uv: vec2f = (-1.0 + 2.0*in.position.xy / resolution.xy) * 
+  let NDC: vec2f = (-1.0 + 2.0*in.position.xy / resolution.xy) * 
 		vec2f(resolution.x/resolution.y, 1.0);
-
-  // Rotate the way according to the current view matrix
-  // TODO: I think it's not the right direction !
-  var rayDir: vec3f = normalize(vec3f(uv, -1.0));
+  var rayDir: vec3f = normalize(vec3f(NDC, -1.0));  // TODO: I think it's not the right direction !
   rayDir = (vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz;
 
   // Calculate the intersection of the ray with the sphere
@@ -99,31 +100,32 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   
   let scene_depth: f32 = textureSample(
     depthTexture, depthSampler,
-    uv
+    in.uv
   );
+  // return vec4f(scene_depth, scene_depth, scene_depth, 1.0);
 
   // If the ray intersects the sphere, set the pixel color to white
   // TODO: 
   // Otherwise, set the pixel color to black
   if (discriminant > 0.0)
   {     
-    let s: f32 = sqrt(discriminant);
-    let t1 = (-b - s) / (2.0 * a);
-    let t2 = (-b + s) / (2.0 * a);
+    // let s: f32 = sqrt(discriminant);
+    // let t1 = (-b - s) / (2.0 * a);
+    // let t2 = (-b + s) / (2.0 * a);
 
-    // Use the closest intersection point
-    let ocean_distance = min(t1, t2);
+    // // Use the closest intersection point
+    // let ocean_distance = min(t1, t2);
 
-    // TODO: I have the distance in world space... what now ?
-    // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
-    // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
-    let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(uv, scene_depth, 1.0);
-    let pixel_position: vec3f = upos.xyz / upos.w;
-    let planet_distance = length(pixel_position - eyePos);
-    if (ocean_distance < planet_distance) {
-      return vec4f(0.0, 0.00, 1.00, 0.5);
-    }
-    return vec4f(0.0, 0.00, 1.00, 0.0);
+    // // TODO: I have the distance in world space... what now ?
+    // // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
+    // // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
+    // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
+    // let pixel_position: vec3f = upos.xyz / upos.w;
+    // let planet_distance = length(pixel_position - eyePos);
+    // if (planet_distance < ocean_distance) {
+    //   return vec4f(0.0, 0.00, 1.00, 0.0);
+    // }
+    return vec4f(0.0, 0.00, 1.00, 0.5);
   }
   else
   {

@@ -470,6 +470,10 @@ bool Renderer::setPlanetPipeline(
     // Upload the initial value of the uniforms
     m_uniforms.modelMatrix = mat4x4(1.0);
     m_uniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
+    // float near = 0.01f, far = 100.0f;
+    // float size = 5.0f;
+    // m_uniforms.projectionMatrix = glm::ortho(
+    //     -size, size, -size, size, near, far);
     m_uniforms.projectionMatrix = glm::perspective(
         glm::radians(45.0f),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
