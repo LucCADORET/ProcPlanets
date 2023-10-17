@@ -477,7 +477,7 @@ bool Renderer::setPlanetPipeline(
     m_uniforms.projectionMatrix = glm::perspective(
         glm::radians(45.0f),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
-        0.01f, 100.0f);
+        near, far);
     m_uniforms.invProjectionMatrix = glm::inverse(m_uniforms.projectionMatrix);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
     m_uniforms.lightDirection = glm::normalize(-mSunPosition);
@@ -953,7 +953,7 @@ bool Renderer::setSkyboxPipeline() {
     mSkyboxUniforms.projectionMatrix = glm::perspective(
         glm::radians(45.0f),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
-        0.01f, 100.0f);
+        near, far);
     mSkyboxUniforms.time = 1.0f;
     m_queue.writeBuffer(mSkyboxUniformBuffer, 0, &mSkyboxUniforms, sizeof(SceneUniforms));
 
@@ -1023,13 +1023,13 @@ void Renderer::resizeSwapChain(GLFWwindow* window) {
 
     // update the projection matrix so that the image keeps its aspect
     float ratio = m_swapChainDesc.width / (float)m_swapChainDesc.height;
-    m_uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, 0.01f, 100.0f);
+    m_uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, near, far);
     m_queue.writeBuffer(
         m_uniformBuffer,
         offsetof(SceneUniforms, projectionMatrix),
         &m_uniforms.projectionMatrix,
         sizeof(SceneUniforms::projectionMatrix));
-    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, 0.01f, 100.0f);
+    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, near, far);
     m_queue.writeBuffer(
         mSkyboxUniformBuffer,
         offsetof(SceneUniforms, projectionMatrix),

@@ -82,6 +82,8 @@ class Renderer {
     // It is used for lighting calculation mostly
     vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
     vec4 mPlanetAlbedo = vec4({0.48, 0.39, 0.31, 1.0f});
+    float near = 0.1f;
+    float far = 100.0f;
 
     wgpu::Instance m_instance = nullptr;
     wgpu::Surface m_surface = nullptr;
