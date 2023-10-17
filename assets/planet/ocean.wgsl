@@ -82,15 +82,22 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let eyePos: vec3f = uSceneUniforms.viewPosition.xyz; // TODO: rename "eyePos"
 
   // TODO: in the future, should depend on the current res
+  // TODO: the FOV should also be a parameter
   // Build the ray dir: remap fragment position to 0,0, 
-  let resolution = vec2f(1600.0, 900.0);
-  let NDC: vec2f = (-1.0 + 2.0*in.position.xy / resolution.xy) * 
-		vec2f(resolution.x/resolution.y, 1.0);
-  var rayDir: vec3f = normalize(vec3f(NDC, -1.0));  // TODO: I think it's not the right direction !
+  // Good resource here: https://computergraphics.stackexchange.com/questions/8479/how-to-calculate-ray
+  let fov = radians(45.0);
+  let d = 1.0/tan(fov/2.0);
+  let width = 1600.0;
+  let height = 900.0;
+  let aspect_ratio = width/height;
+  let x = aspect_ratio*(-1.0 + 2.0 * in.position.x/width);
+  let y = -1.0 + (2.0*(in.position.y/height));
+  let z = -d;
+  var rayDir = vec3f(x, y, z);
   rayDir = (vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz;
 
   // Calculate the intersection of the ray with the sphere
-  let sphereRadius = 3.7;
+  let sphereRadius = 1.5;
   let spherePos = vec3f(0.0, 0.0, 0.0);
   let oc = eyePos - spherePos;
   let a = dot(rayDir, rayDir);
@@ -109,22 +116,22 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   // Otherwise, set the pixel color to black
   if (discriminant > 0.0)
   {     
-    // let s: f32 = sqrt(discriminant);
-    // let t1 = (-b - s) / (2.0 * a);
-    // let t2 = (-b + s) / (2.0 * a);
+    let s: f32 = sqrt(discriminant);
+    let t1 = (-b - s) / (2.0 * a);
+    let t2 = (-b + s) / (2.0 * a);
 
-    // // Use the closest intersection point
-    // let ocean_distance = min(t1, t2);
+    // Use the closest intersection point
+    let ocean_distance = min(t1, t2);
 
-    // // TODO: I have the distance in world space... what now ?
-    // // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
-    // // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
-    // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
-    // let pixel_position: vec3f = upos.xyz / upos.w;
-    // let planet_distance = length(pixel_position - eyePos);
-    // if (planet_distance < ocean_distance) {
-    //   return vec4f(0.0, 0.00, 1.00, 0.0);
-    // }
+    // TODO: I have the distance in world space... what now ?
+    // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
+    // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
+    let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
+    let pixel_position: vec3f = upos.xyz / upos.w;
+    let planet_distance = length(pixel_position - eyePos);
+    if (planet_distance < ocean_distance) {
+      return vec4f(0.0, 0.00, 1.00, 0.0);
+    }
     return vec4f(0.0, 0.00, 1.00, 0.5);
   }
   else
