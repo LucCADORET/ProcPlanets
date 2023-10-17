@@ -68,7 +68,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   // Calculate the intersection of the ray with the sphere
   let sphereRadius = 1.5;
   let spherePos = vec3f(0.0, 0.0, 0.0);
-  let oc = eyePos - spherePos;
+  let oc: vec3f = eyePos - spherePos;
   let a = 1.0; // works because rayDir is normed
   let b = 2.0 * dot(oc, rayDir);
   let c = dot(oc, oc) - sphereRadius * sphereRadius;
@@ -89,7 +89,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let s: f32 = sqrt(discriminant);
     let t1 = (-b - s) / (2.0 * a);
     let t2 = (-b + s) / (2.0 * a);
-    let ocean_distance = min(t1, t2);
+    let solution = min(t1, t2);
+
+    // get the ocean distance from the solution
+    // "you probably want to take the dot product instead of the euclidian distance if you just want the "distance parallel to the camera's forward vector""
+    let ray = solution * rayDir;
+    let ocean_distance = dot(ray, normalize(-eyePos));
 
     // project the scene depth into camera space
     let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
