@@ -121,14 +121,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let t2 = (-b + s) / (2.0 * a);
 
     // Use the closest intersection point
-    let ocean_distance = min(t1, t2);
+    let solution = min(t1, t2);
+    let ocean_distance = length(solution * rayDir);
 
     // TODO: I have the distance in world space... what now ?
     // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
     // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
     let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
     let pixel_position: vec3f = upos.xyz / upos.w;
-    let planet_distance = length(pixel_position - eyePos);
+    let planet_distance = -pixel_position.z;
     if (planet_distance < ocean_distance) {
       return vec4f(0.0, 0.00, 1.00, 0.0);
     }
