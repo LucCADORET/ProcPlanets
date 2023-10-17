@@ -72,18 +72,23 @@ class Renderer {
         vec4 baseColor;
         vec4 viewPosition;
         float time;
-        float _pad[3];
+        float fov;
+
+        // swapchain height size
+        float width;
+        float height;
     };
     // Have the compiler check byte alignment
     static_assert(sizeof(SceneUniforms) % 16 == 0);
 
     // some constant settings
-    // TODO: make it further, it could collide with the model if it gets better
+    // TODO: make the sun it further, it could collide with the model if it gets better
     // It is used for lighting calculation mostly
     vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
     vec4 mPlanetAlbedo = vec4({0.48, 0.39, 0.31, 1.0f});
-    float near = 0.1f;
+    float near = 0.01f;
     float far = 100.0f;
+    float fov = 45.0f;
 
     wgpu::Instance m_instance = nullptr;
     wgpu::Surface m_surface = nullptr;

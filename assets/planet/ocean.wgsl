@@ -12,6 +12,9 @@ struct SceneUniforms {
     baseColor: vec4f,
     viewPosition: vec4f,
     time: f32,
+    fov: f32,
+    width: f32,
+    height: f32,
 };
 
 struct VertexOutput {
@@ -50,14 +53,12 @@ fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let eyePos: vec3f = uSceneUniforms.viewPosition.xyz;
 
-  // TODO: in the future, should depend on the current res
-  // TODO: the FOV should also be a parameter
   // Build the ray dir: remap fragment position to 0,0, 
   // Good resource here: https://computergraphics.stackexchange.com/questions/8479/how-to-calculate-ray
-  let fov = radians(45.0);
+  let fov = radians(uSceneUniforms.fov);
   let d = 1.0/tan(fov/2.0);
-  let width = 1600.0;
-  let height = 900.0;
+  let width = uSceneUniforms.width;
+  let height = uSceneUniforms.height;
   let aspect_ratio = width/height;
   let x = aspect_ratio*(-1.0 + 2.0 * in.position.x/width);
   let y = -1.0 + (2.0*(in.position.y/height));
@@ -66,6 +67,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   rayDir = normalize((vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz);
 
   // Calculate the intersection of the ray with the sphere
+  // TODO: the sphere radius should be a parameter !
   let sphereRadius = 1.5;
   let spherePos = vec3f(0.0, 0.0, 0.0);
   let oc: vec3f = eyePos - spherePos;

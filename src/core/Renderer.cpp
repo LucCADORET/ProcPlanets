@@ -171,7 +171,7 @@ void Renderer::onFrame() {
     renderPass.end();
 
     // OCEAN RENDER PASS
-    renderPassColorAttachment.loadOp = LoadOp::Load; // Load the texture of the previous render passes
+    renderPassColorAttachment.loadOp = LoadOp::Load;  // Load the texture of the previous render passes
 
     RenderPassDescriptor oceanRenderPassDesc{};
     oceanRenderPassDesc.label = "Ocean Render Pass";
@@ -475,7 +475,7 @@ bool Renderer::setPlanetPipeline(
     // m_uniforms.projectionMatrix = glm::ortho(
     //     -size, size, -size, size, near, far);
     m_uniforms.projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
+        glm::radians(fov),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         near, far);
     m_uniforms.invProjectionMatrix = glm::inverse(m_uniforms.projectionMatrix);
@@ -484,6 +484,9 @@ bool Renderer::setPlanetPipeline(
     m_uniforms.baseColor = mPlanetAlbedo;
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
+    m_uniforms.fov = fov;
+    m_uniforms.width = m_swapChainDesc.width;
+    m_uniforms.height = m_swapChainDesc.height;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
 
     // Add the data to the actual bindings
@@ -951,7 +954,7 @@ bool Renderer::setSkyboxPipeline() {
     mSkyboxUniforms.modelMatrix = glm::mat4(1.0f);
     mSkyboxUniforms.viewMatrix = glm::lookAt(vec3(1.0f), vec3(0.0f), vec3(0, 1, 0));
     mSkyboxUniforms.projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
+        glm::radians(fov),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
         near, far);
     mSkyboxUniforms.time = 1.0f;
@@ -1023,18 +1026,32 @@ void Renderer::resizeSwapChain(GLFWwindow* window) {
 
     // update the projection matrix so that the image keeps its aspect
     float ratio = m_swapChainDesc.width / (float)m_swapChainDesc.height;
-    m_uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, near, far);
+    m_uniforms.projectionMatrix = glm::perspective(glm::radians(fov), ratio, near, far);
     m_queue.writeBuffer(
         m_uniformBuffer,
         offsetof(SceneUniforms, projectionMatrix),
         &m_uniforms.projectionMatrix,
         sizeof(SceneUniforms::projectionMatrix));
-    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, near, far);
+    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(fov), ratio, near, far);
     m_queue.writeBuffer(
         mSkyboxUniformBuffer,
         offsetof(SceneUniforms, projectionMatrix),
         &mSkyboxUniforms.projectionMatrix,
         sizeof(SceneUniforms::projectionMatrix));
+
+    // up date the width/height of the viewport in the uniforms
+    m_uniforms.width = m_swapChainDesc.width;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, width),
+        &m_uniforms.width,
+        sizeof(SceneUniforms::width));
+    m_uniforms.height = m_swapChainDesc.height;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, height),
+        &m_uniforms.height,
+        sizeof(SceneUniforms::height));
 }
 
 void Renderer::updateGui(RenderPassEncoder renderPass) {

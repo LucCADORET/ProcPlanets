@@ -31,6 +31,9 @@ struct SceneUniforms {
 	baseColor: vec4f,
 	viewPosition: vec4f,
     time: f32,
+    fov: f32,
+    width: f32,
+    height: f32,
 };
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;
