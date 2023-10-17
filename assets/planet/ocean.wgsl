@@ -46,40 +46,9 @@ fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   return out;
 }
 
-// Inspired by the seb lague code: https://youtu.be/lctXaT9pxA0?si=pKqieIk5W5wFcSOV&t=942
-// Returns the dstToSphere and dstThroughSphere
-// If inside the sphere, dstToSphere = 0
-// If ray misses the sphere: dstToSphere = max float value, dstThroughSphere = 0
-// rayDir must be normalized
-fn raySphere(radius: f32, rayOrigin: vec3f, rayDir: vec3f) -> vec2f {
-  let center: vec3f = vec3f(0.0, 0.0, 0.0);
-  let offset: vec3f = rayOrigin - center;
-  let a: f32 = 1.0; // set to dot(rayDir, rayDir) if it's not normalized
-  let b: f32 = 2.0 * dot(offset, rayDir);
-  let c: f32 = dot(offset, offset) - radius * radius;
-
-  let discriminant: f32 = b * b - 4.0 *a * c;
-  // No intersections: discriminant < 0
-  // 1 Intersection: discriminant == 0
-  // 2 Intersections: discriminant > 0
-
-  if(discriminant > 0.0) {
-    let s: f32 = sqrt(discriminant);
-    let dstToSphereNear = max(0.0, (-b -s) / (2.0 * a));
-    let dstToSphereFar = (-b + s) / (2.0 * a);
-    if(dstToSphereFar >= 0.0) {
-      return vec2f(dstToSphereNear, dstToSphereFar - dstToSphereNear);
-    }
-  }
-
-  // ray did not intersect sphere
-  // We don't  have a f32::MAX yet so we just put a huge number
-  return vec2f(10000000000000.0, 0.0);
-}
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-  let eyePos: vec3f = uSceneUniforms.viewPosition.xyz; // TODO: rename "eyePos"
+  let eyePos: vec3f = uSceneUniforms.viewPosition.xyz;
 
   // TODO: in the future, should depend on the current res
   // TODO: the FOV should also be a parameter
@@ -94,13 +63,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let y = -1.0 + (2.0*(in.position.y/height));
   let z = -d;
   var rayDir = vec3f(x, y, z);
-  rayDir = (vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz;
+  rayDir = normalize((vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz);
 
   // Calculate the intersection of the ray with the sphere
   let sphereRadius = 1.5;
   let spherePos = vec3f(0.0, 0.0, 0.0);
   let oc = eyePos - spherePos;
-  let a = dot(rayDir, rayDir);
+  let a = 1.0; // works because rayDir is normed
   let b = 2.0 * dot(oc, rayDir);
   let c = dot(oc, oc) - sphereRadius * sphereRadius;
   let discriminant = b * b - 4.0 * a * c;
@@ -109,24 +78,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     depthTexture, depthSampler,
     in.uv
   );
+
+  // For debugging the depth
   // return vec4f(scene_depth, scene_depth, scene_depth, 1.0);
 
-  // If the ray intersects the sphere, set the pixel color to white
-  // TODO: 
-  // Otherwise, set the pixel color to black
+  // Discriminant > 0.0 means solutions in front of us
   if (discriminant > 0.0)
   {     
+    // Find the closes of the quadratic solution
     let s: f32 = sqrt(discriminant);
     let t1 = (-b - s) / (2.0 * a);
     let t2 = (-b + s) / (2.0 * a);
+    let ocean_distance = min(t1, t2);
 
-    // Use the closest intersection point
-    let solution = min(t1, t2);
-    let ocean_distance = length(solution * rayDir);
-
-    // TODO: I have the distance in world space... what now ?
-    // Idea: get the pixel position in world space, compute the distance from the eye, and compare to t
-    // let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.position.xy * 2.0 - 1.0, scene_depth, 1.0);
+    // project the scene depth into camera space
     let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
     let pixel_position: vec3f = upos.xyz / upos.w;
     let planet_distance = -pixel_position.z;

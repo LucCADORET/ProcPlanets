@@ -152,11 +152,11 @@ void Renderer::onFrame() {
     renderPassDesc.timestampWrites = nullptr;
     RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
 
-    // // the skybox stuff
-    // renderPass.setPipeline(mSkyboxPipeline);
-    // renderPass.setVertexBuffer(0, mSkyboxVertexBuffer, 0, mSkyboxVertexCount * sizeof(VertexAttributes));
-    // renderPass.setBindGroup(0, mSkyboxBindGroup, 0, nullptr);
-    // renderPass.draw(mSkyboxVertexCount, 1, 0, 0);
+    // the skybox stuff
+    renderPass.setPipeline(mSkyboxPipeline);
+    renderPass.setVertexBuffer(0, mSkyboxVertexBuffer, 0, mSkyboxVertexCount * sizeof(VertexAttributes));
+    renderPass.setBindGroup(0, mSkyboxBindGroup, 0, nullptr);
+    renderPass.draw(mSkyboxVertexCount, 1, 0, 0);
 
     // the whole scene stuff
     renderPass.setPipeline(m_pipeline);
