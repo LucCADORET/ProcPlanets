@@ -95,7 +95,7 @@ bool Engine::onInit() {
 void Engine::onFrame() {
     // if the settings changed, take down the current pipeline and rebuild the planet
     GUISettings settings = m_renderer.getGUISettings();
-    if (settings.changed) {
+    if (settings.planetSettingsChanged) {
         m_renderer.terminatePlanetPipeline();
         std::vector<VertexAttributes> vertexData;
         std::vector<uint32_t> indices;

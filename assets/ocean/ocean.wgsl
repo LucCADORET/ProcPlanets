@@ -16,6 +16,7 @@ struct SceneUniforms {
     fov: f32,
     width: f32,
     height: f32,
+    oceanRadius: f32,
 };
 
 struct VertexOutput {
@@ -110,8 +111,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   rayDir = normalize((uSceneUniforms.invViewmatrix * vec4f(rayDir, 0.0)).xyz);
 
   // Calculate the intersection of the ray with the sphere
-  // TODO: the sphere radius should be a parameter !
-  let sphereRadius = 1.5;
+  let sphereRadius = uSceneUniforms.oceanRadius;
   let spherePos = vec3f(0.0, 0.0, 0.0);
   let oc: vec3f = eyePos - spherePos;
   let a = 1.0; // works because rayDir is normed

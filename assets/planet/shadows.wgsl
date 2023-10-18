@@ -23,6 +23,7 @@ struct SceneUniforms {
     fov: f32,
     width: f32,
     height: f32,
+    oceanRadius: f32,
 };
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;

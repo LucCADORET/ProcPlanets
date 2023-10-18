@@ -620,6 +620,14 @@ bool Renderer::setOceanPipeline() {
     samplerDesc.maxAnisotropy = 1;
     m_sampler = m_device.createSampler(samplerDesc);
 
+    // default radius
+    m_uniforms.oceanRadius = mGUISettings.oceanRadius;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, oceanRadius),
+        &m_uniforms.oceanRadius,
+        sizeof(SceneUniforms::oceanRadius));
+
     // Add the data to the actual bindings
     std::vector<BindGroupEntry> bindings(bindGroupEntriesCount);
 
@@ -638,7 +646,7 @@ bool Renderer::setOceanPipeline() {
     // the normal map
     string oceanNormalPath = ASSETS_DIR "/ocean/water_nm_1.jpeg";
     mOceanNMTexture = ResourceManager::loadTexture(
-    oceanNormalPath, m_device, &mOceanNMTextureView);
+        oceanNormalPath, m_device, &mOceanNMTextureView);
     if (!mOceanNMTexture) {
         std::cerr << "Could not load texture!" << std::endl;
         return false;
@@ -1043,6 +1051,15 @@ void Renderer::updateCamera(glm::vec3 position) {
         sizeof(SceneUniforms::viewMatrix));
 }
 
+void Renderer::setOceanSettings(float oceanRadius) {
+    m_uniforms.oceanRadius = oceanRadius;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, oceanRadius),
+        &m_uniforms.oceanRadius,
+        sizeof(SceneUniforms::oceanRadius));
+}
+
 void Renderer::updateGui(RenderPassEncoder renderPass) {
     // Start the Dear ImGui frame
     ImGui_ImplWGPU_NewFrame();
@@ -1051,7 +1068,7 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
 
     {
         // Build a demo UI
-        bool changed = false;
+        bool planetSettingsChanged = false;
         // static int counter = 0;
         // static bool show_demo_window = true;
         // static bool show_another_window = false;
@@ -1070,14 +1087,23 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // }
         // ImGui::SameLine();
         // ImGui::Text("counter = %d", counter);
-        ImGui::SeparatorText("Base sphere");
-        changed = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || changed;  // count of vertices per face
-        changed = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 100.0f) || changed;
-        ImGui::SeparatorText("Noise");
-        changed = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || changed;
-        changed = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || changed;  // count of vertices per face
 
-        mGUISettings.changed = changed;
+        // Planet construction part
+        ImGui::SeparatorText("Base sphere");
+        planetSettingsChanged = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || planetSettingsChanged;  // count of vertices per face
+        planetSettingsChanged = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 10.0f) || planetSettingsChanged;
+        ImGui::SeparatorText("Noise");
+        planetSettingsChanged = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || planetSettingsChanged;
+        planetSettingsChanged = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || planetSettingsChanged;  // count of vertices per face
+
+        // Ocean part
+        ImGui::SeparatorText("Ocean");
+        bool oceanSettingsChanged = ImGui::SliderFloat("ocean radius", &(mGUISettings.oceanRadius), 1.0f, 10.0f);  // count of vertices per face
+        if (oceanSettingsChanged) {
+            setOceanSettings(mGUISettings.oceanRadius);
+        }
+
+        mGUISettings.planetSettingsChanged = planetSettingsChanged;
         ImGui::SeparatorText("Debug");
         ImGui::Text("View pos: (%.3f, %.3f, %.3f)", m_uniforms.viewPosition.x, m_uniforms.viewPosition.y, m_uniforms.viewPosition.z);
         ImGuiIO& io = ImGui::GetIO();

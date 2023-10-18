@@ -18,13 +18,18 @@
 using VertexAttributes = ResourceManager::VertexAttributes;
 
 struct GUISettings {
-    bool changed = true;  // default to true for the initial render
+    // default to true for the initial render
+    // is only for the planet stuff
+    bool planetSettingsChanged = true;
     int resolution = 100;
     float radius = 1.0;
 
     // noise settings
     float frequency = 1.0f;
     int octaves = 8;
+
+    // ocean settings
+    float oceanRadius = 1.5f;
 };
 
 class Renderer {
@@ -51,6 +56,7 @@ class Renderer {
     void buildShadowDepthTexture();
     void updateGui(wgpu::RenderPassEncoder renderPass);
     bool setShadowPipeline();
+    void setOceanSettings(float oceanRadius);
 
     // (Just aliases to make notations lighter)
     using mat4x4 = glm::mat4x4;
@@ -78,6 +84,10 @@ class Renderer {
         // swapchain height size
         float width;
         float height;
+
+        // ocean settings
+        float oceanRadius;
+        float _pad[3];
     };
     // Have the compiler check byte alignment
     static_assert(sizeof(SceneUniforms) % 16 == 0);
