@@ -66,7 +66,7 @@ bool Engine::onInit() {
         return false;
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     m_window = glfwCreateWindow(windowHeight, windowWidth, "Learn WebGPU", NULL, NULL);
     if (!m_window) {
         std::cerr << "Could not open window!" << std::endl;
