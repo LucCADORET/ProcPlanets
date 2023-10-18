@@ -100,6 +100,8 @@ void Engine::onFrame() {
         std::vector<VertexAttributes> vertexData;
         std::vector<uint32_t> indices;
         m_planetGenerator.generatePlanetData(vertexData, indices, settings);
+
+        // TODO: why remake the whole pipeline ? only the data changes
         m_renderer.setPlanetPipeline(vertexData, indices);
 
         // update the view matrix to match the current camera position
