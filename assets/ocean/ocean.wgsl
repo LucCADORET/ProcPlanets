@@ -25,8 +25,9 @@ struct VertexOutput {
 
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;
-@group(0) @binding(1) var depthSampler: sampler;
+@group(0) @binding(1) var textureSampler: sampler;
 @group(0) @binding(2) var depthTexture: texture_depth_2d;
+@group(0) @binding(3) var normalTexture: texture_2d<f32>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
@@ -47,6 +48,48 @@ fn vs_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   // invert y and put in 0,1 range
   out.uv = out.position.xy * vec2(0.5, -0.5) + vec2(0.5);
   return out;
+}
+
+fn getTriPlanarBlend(normal: vec3<f32>) -> vec3<f32> {
+	// in wNorm is the world-space normal of the fragment
+    var blending = abs(normal);
+	
+	// ensure a minimum
+    let clamped = vec3<f32>(max(blending.x, 0.00001), max(blending.y, 0.00001), max(blending.z, 0.00001));
+    blending = normalize(clamped); 
+
+	// get percentage on each axis
+    let b = (blending.x + blending.y + blending.z);
+    blending /= vec3(b, b, b);
+    return blending;
+}
+
+// changes a normal from 0-1 space to -1-+1 space
+fn unpackNormal(packednormal: vec4<f32>) -> vec4<f32> {
+    return packednormal * 2.0 - 1.0;
+}
+
+// Return the normal using the normal map and triplanar mapping
+fn get_normal(eyePos: vec3f, hit_point: vec3f, spherePos: vec3f) -> vec3f {
+    let normal: vec3f = normalize(hit_point - spherePos);
+  
+    // GPU Gems 3 blend// Triplanar uvs
+    // Triplanar blend of the normal map
+    let blend = getTriPlanarBlend(hit_point);
+    let uvX = hit_point.zy; // x facing plane
+    let uvY = hit_point.xz; // y facing plane
+    let uvZ = hit_point.xy; // z facing plane// Tangent space normal maps
+    let tnormalX = unpackNormal(textureSample(normalTexture, textureSampler, uvX));
+    let tnormalY = unpackNormal(textureSample(normalTexture, textureSampler, uvY));
+    let tnormalZ = unpackNormal(textureSample(normalTexture, textureSampler, uvZ));
+
+    // Swizzle tangent normals into world space and zero out "z"
+    let normalX = vec3<f32>(0.0, tnormalX.yx);
+    let normalY = vec3<f32>(tnormalY.x, 0.0, tnormalY.y);
+    let normalZ = vec3<f32>(tnormalZ.xy, 0.0);// Triblend normals and add to world normal
+    let normalBlend = normalX.xyz * blend.x + normalY.xyz * blend.y + normalZ.xyz * blend.z + normal;
+    let worldNormal = normalize(normalBlend);
+    return worldNormal;
 }
 
 @fragment
@@ -77,7 +120,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let discriminant = b * b - 4.0 * a * c;
   
   let scene_depth: f32 = textureSample(
-    depthTexture, depthSampler,
+    depthTexture, textureSampler,
     in.uv
   );
 
@@ -120,7 +163,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 
     // compute the normal of the sphere
     let hit_point = eyePos + ray; // hit point world pos
-    let normal: vec3f = normalize(hit_point - spherePos);
+    let normal: vec3f = get_normal(eyePos, hit_point, spherePos);
 
     // diffuse component
     let lightDirection = normalize(-uSceneUniforms.lightDirection);

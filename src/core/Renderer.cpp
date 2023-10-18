@@ -521,7 +521,7 @@ bool Renderer::setPlanetPipeline(
 bool Renderer::setOceanPipeline() {
     // Load the shaders
     // std::cout << "Creating shader module..." << std::endl;
-    string shaderPath = ASSETS_DIR "/planet/ocean.wgsl";
+    string shaderPath = ASSETS_DIR "/ocean/ocean.wgsl";
     wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
     // std::cout << "Shader module: " << shaderModule << std::endl;
 
@@ -569,7 +569,7 @@ bool Renderer::setOceanPipeline() {
 
     // Create binding layouts
     // Just the uniforms for now: no texture or anything
-    int bindGroupEntriesCount = 3;
+    int bindGroupEntriesCount = 4;
     std::vector<BindGroupLayoutEntry> bindingLayoutEntries(bindGroupEntriesCount, Default);
 
     // The uniform buffer binding
@@ -592,13 +592,20 @@ bool Renderer::setOceanPipeline() {
     baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Depth;
     baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
 
+    // The normal map
+    BindGroupLayoutEntry& normalMapTextureBindingLayout = bindingLayoutEntries[3];
+    normalMapTextureBindingLayout.binding = 3;
+    normalMapTextureBindingLayout.visibility = ShaderStage::Fragment;
+    normalMapTextureBindingLayout.texture.sampleType = TextureSampleType::Float;
+    normalMapTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
+
     // Create a bind group layout
     BindGroupLayoutDescriptor bindGroupLayoutDesc{};
     bindGroupLayoutDesc.entryCount = (uint32_t)bindingLayoutEntries.size();
     bindGroupLayoutDesc.entries = bindingLayoutEntries.data();
     BindGroupLayout bindGroupLayout = m_device.createBindGroupLayout(bindGroupLayoutDesc);
 
-    // Create the pipeline layout // TODO: should include uniforms. deactivated to test something
+    // Create the pipeline layout
     PipelineLayoutDescriptor layoutDesc{};
     layoutDesc.bindGroupLayoutCount = 1;
     layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
@@ -622,13 +629,22 @@ bool Renderer::setOceanPipeline() {
     bindings[0].offset = 0;
     bindings[0].size = sizeof(SceneUniforms);
 
-    // sampler
+    // depth texture stuff
     bindings[1].binding = 1;
     bindings[1].sampler = m_sampler;
-
-    // The shadow texture
     bindings[2].binding = 2;
     bindings[2].textureView = m_depthTextureView;
+
+    // the normal map
+    string oceanNormalPath = ASSETS_DIR "/ocean/water_nm_1.jpeg";
+    mOceanNMTexture = ResourceManager::loadTexture(
+    oceanNormalPath, m_device, &mOceanNMTextureView);
+    if (!mOceanNMTexture) {
+        std::cerr << "Could not load texture!" << std::endl;
+        return false;
+    }
+    bindings[3].binding = 3;
+    bindings[3].textureView = mOceanNMTextureView;
 
     BindGroupDescriptor bindGroupDesc;
     bindGroupDesc.layout = bindGroupLayout;

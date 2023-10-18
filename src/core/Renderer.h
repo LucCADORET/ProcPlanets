@@ -153,6 +153,8 @@ class Renderer {
     // Ocean stuff
     wgpu::RenderPipeline mOceanPipeline = nullptr;
     wgpu::BindGroup mOceanBindGroup = nullptr;
+    wgpu::TextureView mOceanNMTextureView = nullptr;  // keep track of it for later cleanup
+    wgpu::Texture mOceanNMTexture = nullptr;
 
     // GUI related stuff
     GUISettings mGUISettings;
