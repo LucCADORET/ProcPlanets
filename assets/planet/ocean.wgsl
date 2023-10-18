@@ -5,6 +5,7 @@ struct SceneUniforms {
     projectionMatrix: mat4x4f,
     invProjectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
+	  invViewmatrix: mat4x4f,
     modelMatrix: mat4x4f,
     lightViewProjMatrix: mat4x4f,
     color: vec4f,
@@ -19,8 +20,7 @@ struct SceneUniforms {
 
 struct VertexOutput {
 	@builtin(position) position: vec4f,
-	@location(1) worldPosition: vec4f,
-  @location(2) uv: vec2f,
+  @location(1) uv: vec2f,
 };
 
 
@@ -61,10 +61,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
   let height = uSceneUniforms.height;
   let aspect_ratio = width/height;
   let x = aspect_ratio*(-1.0 + 2.0 * in.position.x/width);
-  let y = -1.0 + (2.0*(in.position.y/height));
+  let y = -(-1.0 + (2.0*(in.position.y/height)));
   let z = -d;
   var rayDir = vec3f(x, y, z);
-  rayDir = normalize((vec4f(rayDir, 0.0) * uSceneUniforms.viewMatrix).xyz);
+  rayDir = normalize((uSceneUniforms.invViewmatrix * vec4f(rayDir, 0.0)).xyz);
 
   // Calculate the intersection of the ray with the sphere
   // TODO: the sphere radius should be a parameter !
@@ -96,7 +96,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     // get the ocean distance from the solution
     // "you probably want to take the dot product instead of the euclidian distance if you just want the "distance parallel to the camera's forward vector""
     let ray = solution * rayDir;
-    let ocean_distance = dot(ray, normalize(-eyePos));
+    let ocean_distance = dot(ray, normalize(spherePos-eyePos));
 
     // project the scene depth into camera space
     let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
@@ -119,7 +119,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let base_ocean_color = vec3f(0.00, 0.55, 1.00);
 
     // compute the normal of the sphere
-    let hit_point = eyePos + ray;
+    let hit_point = eyePos + ray; // hit point world pos
     let normal: vec3f = normalize(hit_point - spherePos);
 
     // diffuse component
@@ -128,9 +128,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let diffuse = vec4f(base_ocean_color * incidence, 1.0);
 
     // The specular part
-    let viewDir = normalize(uSceneUniforms.viewPosition - in.worldPosition);
+    let worldPosition = hit_point;
+    let viewDir = normalize(-ray);
     let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, normal);  
-    let specular: f32 = pow(max(dot(viewDir.xyz, reflectDir), 0.0), 16.0);
+    let specular: f32 = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
     
     // Final output
     // let light_color = vec4f(1.0);

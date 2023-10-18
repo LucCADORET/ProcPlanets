@@ -1010,6 +1010,12 @@ void Renderer::updateCamera(glm::vec3 position) {
         offsetof(SceneUniforms, viewMatrix),
         &m_uniforms.viewMatrix,
         sizeof(SceneUniforms::viewMatrix));
+    m_uniforms.invViewMatrix = glm::inverse(m_uniforms.viewMatrix);
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, invViewMatrix),
+        &m_uniforms.invViewMatrix,
+        sizeof(SceneUniforms::invViewMatrix));
 
     // update the view matrix for the skybox
     // we get rid of the translation part also with an intermediary mat3
