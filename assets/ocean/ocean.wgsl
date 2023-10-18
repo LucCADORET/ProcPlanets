@@ -76,9 +76,9 @@ fn get_normal(eyePos: vec3f, hit_point: vec3f, spherePos: vec3f) -> vec3f {
     // GPU Gems 3 blend// Triplanar uvs
     // Triplanar blend of the normal map
     let blend = getTriPlanarBlend(hit_point);
-    let uvX = hit_point.zy; // x facing plane
-    let uvY = hit_point.xz; // y facing plane
-    let uvZ = hit_point.xy; // z facing plane// Tangent space normal maps
+    let uvX = hit_point.zy + uSceneUniforms.time/100.0; // x facing plane
+    let uvY = hit_point.xz + uSceneUniforms.time/100.0; // y facing plane
+    let uvZ = hit_point.xy + uSceneUniforms.time/100.0; // z facing plane// Tangent space normal maps
     let tnormalX = unpackNormal(textureSample(normalTexture, textureSampler, uvX));
     let tnormalY = unpackNormal(textureSample(normalTexture, textureSampler, uvY));
     let tnormalZ = unpackNormal(textureSample(normalTexture, textureSampler, uvZ));
