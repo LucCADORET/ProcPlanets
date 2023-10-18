@@ -1021,39 +1021,6 @@ void Renderer::updateCamera(glm::vec3 position) {
         sizeof(SceneUniforms::viewMatrix));
 }
 
-void Renderer::resizeSwapChain(GLFWwindow* window) {
-    buildSwapChain(window);
-
-    // update the projection matrix so that the image keeps its aspect
-    float ratio = m_swapChainDesc.width / (float)m_swapChainDesc.height;
-    m_uniforms.projectionMatrix = glm::perspective(glm::radians(fov), ratio, near, far);
-    m_queue.writeBuffer(
-        m_uniformBuffer,
-        offsetof(SceneUniforms, projectionMatrix),
-        &m_uniforms.projectionMatrix,
-        sizeof(SceneUniforms::projectionMatrix));
-    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(fov), ratio, near, far);
-    m_queue.writeBuffer(
-        mSkyboxUniformBuffer,
-        offsetof(SceneUniforms, projectionMatrix),
-        &mSkyboxUniforms.projectionMatrix,
-        sizeof(SceneUniforms::projectionMatrix));
-
-    // up date the width/height of the viewport in the uniforms
-    m_uniforms.width = m_swapChainDesc.width;
-    m_queue.writeBuffer(
-        m_uniformBuffer,
-        offsetof(SceneUniforms, width),
-        &m_uniforms.width,
-        sizeof(SceneUniforms::width));
-    m_uniforms.height = m_swapChainDesc.height;
-    m_queue.writeBuffer(
-        m_uniformBuffer,
-        offsetof(SceneUniforms, height),
-        &m_uniforms.height,
-        sizeof(SceneUniforms::height));
-}
-
 void Renderer::updateGui(RenderPassEncoder renderPass) {
     // Start the Dear ImGui frame
     ImGui_ImplWGPU_NewFrame();
