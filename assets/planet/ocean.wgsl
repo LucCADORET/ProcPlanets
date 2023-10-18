@@ -118,8 +118,26 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     // blue ocean color
     let base_ocean_color = vec3f(0.00, 0.55, 1.00);
 
+    // compute the normal of the sphere
+    let hit_point = eyePos + ray;
+    let normal: vec3f = normalize(hit_point - spherePos);
+
+    // diffuse component
+    let lightDirection = normalize(-uSceneUniforms.lightDirection);
+    let incidence = max(dot(lightDirection, vec4f(normal, 0.0)), 0.0);
+    let diffuse = vec4f(base_ocean_color * incidence, 1.0);
+
+    // The specular part
+    let viewDir = normalize(uSceneUniforms.viewPosition - in.worldPosition);
+    let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, normal);  
+    let specular: f32 = pow(max(dot(viewDir.xyz, reflectDir), 0.0), 16.0);
+    
+    // Final output
+    // let light_color = vec4f(1.0);
+	  let color: vec4f = diffuse + specular;
+
     // gamma correction
-    let corrected_color = pow(base_ocean_color, vec3f(2.2));
+    let corrected_color = pow(color.xyz, vec3f(2.2));
     
     return vec4f(corrected_color, alpha);
   }
