@@ -100,15 +100,31 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 
     // project the scene depth into camera space
     let upos: vec4f = uSceneUniforms.invProjectionMatrix * vec4(in.uv * 2.0 - 1.0, scene_depth, 1.0);
-    let pixel_position: vec3f = upos.xyz / upos.w;
-    let planet_distance = -pixel_position.z;
-    if (planet_distance < ocean_distance) {
-      return vec4f(0.0, 0.00, 1.00, 0.0);
+
+    // invert z to be the right way
+    // this it the actual planet pixel world position
+    let planet_pixel_position: vec3f = (upos.xyz / upos.w) * vec3f(1.0, 1.0, -1.0);
+
+    // planet is closer that ocean: show the earth
+    if (planet_pixel_position.z < ocean_distance) {
+      return vec4f(0.0);
     }
-    return vec4f(0.0, 0.00, 1.00, 0.5);
+
+    // adjusting the transparency depending on the depth
+    let depth = planet_pixel_position.z - ocean_distance;
+    let max_depth = 0.2;
+    let alpha = clamp(depth / max_depth, 0.3, 0.8);
+
+    // blue ocean color
+    let base_ocean_color = vec3f(0.00, 0.55, 1.00);
+
+    // gamma correction
+    let corrected_color = pow(base_ocean_color, vec3f(2.2));
+    
+    return vec4f(corrected_color, alpha);
   }
   else
   {
-    return vec4f(0.0, 0.0, 0.0, 0.0);
+    return vec4f(0.0);
   }
 }
