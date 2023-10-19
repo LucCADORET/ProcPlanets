@@ -644,7 +644,7 @@ bool Renderer::setOceanPipeline() {
     bindings[2].textureView = m_depthTextureView;
 
     // the normal map
-    string oceanNormalPath = ASSETS_DIR "/ocean/water_nm_1.jpeg";
+    string oceanNormalPath = ASSETS_DIR "/ocean/water_nm.jpg";
     mOceanNMTexture = ResourceManager::loadTexture(
         oceanNormalPath, m_device, &mOceanNMTextureView);
     if (!mOceanNMTexture) {
