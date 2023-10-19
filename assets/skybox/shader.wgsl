@@ -23,13 +23,19 @@ struct VertexOutput {
  */
 struct SceneUniforms {
     projectionMatrix: mat4x4f,
+    invProjectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
+	invViewmatrix: mat4x4f,
     modelMatrix: mat4x4f,
     color: vec4f,
 	lightDirection: vec4f,
 	baseColor: vec4f,
 	viewPosition: vec4f,
     time: f32,
+    fov: f32,
+    width: f32,
+    height: f32,
+    oceanRadius: f32,
 };
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;

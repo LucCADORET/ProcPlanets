@@ -18,13 +18,18 @@
 using VertexAttributes = ResourceManager::VertexAttributes;
 
 struct GUISettings {
-    bool changed = true;  // default to true for the initial render
+    // default to true for the initial render
+    // is only for the planet stuff
+    bool planetSettingsChanged = true;
     int resolution = 100;
     float radius = 1.0;
 
     // noise settings
     float frequency = 1.0f;
     int octaves = 8;
+
+    // ocean settings
+    float oceanRadius = 1.5f;
 };
 
 class Renderer {
@@ -34,6 +39,7 @@ class Renderer {
         std::vector<VertexAttributes> const& vertexData,
         std::vector<uint32_t> const& indices);
     bool setSkyboxPipeline();
+    bool setOceanPipeline();
     void terminate();
     void terminatePlanetPipeline();
     void onFrame();
@@ -50,6 +56,7 @@ class Renderer {
     void buildShadowDepthTexture();
     void updateGui(wgpu::RenderPassEncoder renderPass);
     bool setShadowPipeline();
+    void setOceanSettings(float oceanRadius);
 
     // (Just aliases to make notations lighter)
     using mat4x4 = glm::mat4x4;
@@ -60,7 +67,9 @@ class Renderer {
     struct SceneUniforms {
         // Transform matrices
         mat4x4 projectionMatrix;
+        mat4x4 invProjectionMatrix;
         mat4x4 viewMatrix;
+        mat4x4 invViewMatrix;
         mat4x4 modelMatrix;
         mat4x4 lightViewProjMatrix;
 
@@ -70,16 +79,27 @@ class Renderer {
         vec4 baseColor;
         vec4 viewPosition;
         float time;
+        float fov;
+
+        // swapchain height size
+        float width;
+        float height;
+
+        // ocean settings
+        float oceanRadius;
         float _pad[3];
     };
     // Have the compiler check byte alignment
     static_assert(sizeof(SceneUniforms) % 16 == 0);
 
     // some constant settings
-    // TODO: make it further, it could collide with the model if it gets better
+    // TODO: make the sun it further, it could collide with the model if it gets better
     // It is used for lighting calculation mostly
     vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
     vec4 mPlanetAlbedo = vec4({0.48, 0.39, 0.31, 1.0f});
+    float near = 0.01f;
+    float far = 100.0f;
+    float fov = 45.0f;
 
     wgpu::Instance m_instance = nullptr;
     wgpu::Surface m_surface = nullptr;
@@ -139,6 +159,12 @@ class Renderer {
     vector<ResourceManager::VertexAttributes> mSkyboxVertexData;
     wgpu::TextureView mSkyboxTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mSkyboxTexture = nullptr;
+
+    // Ocean stuff
+    wgpu::RenderPipeline mOceanPipeline = nullptr;
+    wgpu::BindGroup mOceanBindGroup = nullptr;
+    wgpu::TextureView mOceanNMTextureView = nullptr;  // keep track of it for later cleanup
+    wgpu::Texture mOceanNMTexture = nullptr;
 
     // GUI related stuff
     GUISettings mGUISettings;

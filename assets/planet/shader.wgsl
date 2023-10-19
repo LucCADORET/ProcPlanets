@@ -19,7 +19,9 @@ struct VertexOutput {
  */
 struct SceneUniforms {
     projectionMatrix: mat4x4f,
+    invProjectionMatrix: mat4x4f,
     viewMatrix: mat4x4f,
+	invViewmatrix: mat4x4f,
     modelMatrix: mat4x4f,
 	lightViewProjMatrix: mat4x4f,
     color: vec4f,
@@ -27,6 +29,10 @@ struct SceneUniforms {
 	baseColor: vec4f,
 	viewPosition: vec4f,
     time: f32,
+    fov: f32,
+    width: f32,
+    height: f32,
+    oceanRadius: f32,
 };
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;
@@ -49,7 +55,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 	  // XY is in (-1, 1) space, Z is in (0, 1) space
 	let posFromLight = uSceneUniforms.lightViewProjMatrix * uSceneUniforms.modelMatrix * vec4(in.position, 1.0);
 
-	// Convert XY to (0, 1)
+	// Convert XY to (0, 1) for fetching the texture
 	// Y is flipped because texture coords are Y-down.
 	out.shadowPos = vec3(
 		posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5),
@@ -91,15 +97,16 @@ fn shadowCalculation(shadowPos: vec3f) -> f32 {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	let albedo = uSceneUniforms.baseColor;
+	let normal = normalize(in.normal);
 
 	// diffuse component
 	let lightDirection = normalize(-uSceneUniforms.lightDirection);
-	let incidence = max(dot(lightDirection, vec4f(in.normal, 0.0)), 0.0);
+	let incidence = max(dot(lightDirection, vec4f(normal, 0.0)), 0.0);
 	let diffuse = vec4f(albedo.xyz * incidence, 1.0);
 
 	// // The specular part
 	let viewDir = normalize(uSceneUniforms.viewPosition - in.worldPosition);
-	let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, in.normal);  
+	let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, normal);  
 	let specular = pow(max(dot(viewDir.xyz, reflectDir), 0.0), 16.0);
 
 	// Shadow computation

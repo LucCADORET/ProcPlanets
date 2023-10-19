@@ -47,12 +47,6 @@ using VertexAttributes = ResourceManager::VertexAttributes;
 
 constexpr float PI = 3.14159265358979323846f;
 
-// The raw GLFW callback
-void onWindowResize(GLFWwindow* m_window, int /* width */, int /* height */) {
-    auto pApp = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(m_window));
-    if (pApp != nullptr) pApp->onResize();
-}
-
 void onWindowMouseMove(GLFWwindow* m_window, double xpos, double ypos) {
     auto pApp = reinterpret_cast<Engine*>(glfwGetWindowUserPointer(m_window));
     if (pApp != nullptr) pApp->onMouseMove(xpos, ypos);
@@ -72,7 +66,7 @@ bool Engine::onInit() {
         return false;
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     m_window = glfwCreateWindow(windowHeight, windowWidth, "Learn WebGPU", NULL, NULL);
     if (!m_window) {
         std::cerr << "Could not open window!" << std::endl;
@@ -84,9 +78,11 @@ bool Engine::onInit() {
     // setup the skybox
     m_renderer.setSkyboxPipeline();
 
+    // setup the ocean
+    m_renderer.setOceanPipeline();
+
     // Setup GLFW callbacks
     glfwSetWindowUserPointer(m_window, this);
-    glfwSetFramebufferSizeCallback(m_window, onWindowResize);
     glfwSetCursorPosCallback(m_window, onWindowMouseMove);
     glfwSetMouseButtonCallback(m_window, onWindowMouseButton);
     glfwSetScrollCallback(m_window, onWindowScroll);
@@ -97,13 +93,15 @@ bool Engine::onInit() {
 }
 
 void Engine::onFrame() {
-     // if the settings changed, take down the current pipeline and rebuild the planet
+    // if the settings changed, take down the current pipeline and rebuild the planet
     GUISettings settings = m_renderer.getGUISettings();
-    if (settings.changed) {
+    if (settings.planetSettingsChanged) {
         m_renderer.terminatePlanetPipeline();
         std::vector<VertexAttributes> vertexData;
         std::vector<uint32_t> indices;
         m_planetGenerator.generatePlanetData(vertexData, indices, settings);
+
+        // TODO: why remake the whole pipeline ? only the data changes
         m_renderer.setPlanetPipeline(vertexData, indices);
 
         // update the view matrix to match the current camera position
@@ -123,10 +121,6 @@ void Engine::onFinish() {
 
 bool Engine::isRunning() {
     return !glfwWindowShouldClose(m_window);
-}
-
-void Engine::onResize() {
-    m_renderer.resizeSwapChain(m_window);
 }
 
 void Engine::onMouseMove(double xpos, double ypos) {

@@ -56,6 +56,14 @@ bool Renderer::init(GLFWwindow* window) {
     });
 
     m_queue = m_device.getQueue();
+
+    // Create the uniform buffer that will be common to the planet, shadow and ocean pipeline
+    BufferDescriptor bufferDesc;
+    bufferDesc.size = sizeof(SceneUniforms);
+    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
+    bufferDesc.mappedAtCreation = false;
+    m_uniformBuffer = m_device.createBuffer(bufferDesc);
+
     buildSwapChain(window);
     buildShadowDepthTexture();
     return true;
@@ -95,6 +103,7 @@ void Renderer::onFrame() {
     shadowDepthStencilAttachment.stencilReadOnly = false;
 
     RenderPassDescriptor shadowPassDesc{};
+    shadowPassDesc.label = "Shadow Render Pass";
     shadowPassDesc.colorAttachmentCount = 0;
     shadowPassDesc.colorAttachments = nullptr;
     shadowPassDesc.depthStencilAttachment = &shadowDepthStencilAttachment;
@@ -110,7 +119,7 @@ void Renderer::onFrame() {
     shadowPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
     shadowPass.end();
 
-    // SKYBOX + SCENE RENDER PASS
+    // SKYBOX + OCEAN + SCENE RENDER PASS
     RenderPassDepthStencilAttachment depthStencilAttachment;
     depthStencilAttachment.view = m_depthTextureView;
     depthStencilAttachment.depthClearValue = 1.0f;
@@ -125,7 +134,7 @@ void Renderer::onFrame() {
     depthStencilAttachment.stencilLoadOp = LoadOp::Undefined;
     depthStencilAttachment.stencilStoreOp = StoreOp::Undefined;
 #endif
-    depthStencilAttachment.stencilReadOnly = true;
+    depthStencilAttachment.stencilReadOnly = false;
 
     RenderPassColorAttachment renderPassColorAttachment{};
     renderPassColorAttachment.view = nextTexture;
@@ -135,6 +144,7 @@ void Renderer::onFrame() {
     renderPassColorAttachment.clearValue = Color{0.65, 0.67, 1, 1.0};
 
     RenderPassDescriptor renderPassDesc{};
+    renderPassDesc.label = "Scene Render pass";
     renderPassDesc.colorAttachmentCount = 1;
     renderPassDesc.colorAttachments = &renderPassColorAttachment;
     renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
@@ -159,6 +169,25 @@ void Renderer::onFrame() {
     updateGui(renderPass);
 
     renderPass.end();
+
+    // OCEAN RENDER PASS
+    renderPassColorAttachment.loadOp = LoadOp::Load;  // Load the texture of the previous render passes
+
+    RenderPassDescriptor oceanRenderPassDesc{};
+    oceanRenderPassDesc.label = "Ocean Render Pass";
+    oceanRenderPassDesc.colorAttachmentCount = 1;
+    oceanRenderPassDesc.colorAttachments = &renderPassColorAttachment;
+    oceanRenderPassDesc.depthStencilAttachment = nullptr;
+    oceanRenderPassDesc.timestampWriteCount = 0;
+    oceanRenderPassDesc.timestampWrites = nullptr;
+    RenderPassEncoder oceanRenderPass = encoder.beginRenderPass(oceanRenderPassDesc);
+
+    // The ocean stuff
+    oceanRenderPass.setPipeline(mOceanPipeline);
+    oceanRenderPass.setBindGroup(0, mOceanBindGroup, 0, nullptr);
+    oceanRenderPass.draw(6, 1, 0, 0);  // draw a double triangle
+
+    oceanRenderPass.end();
 
     nextTexture.release();
 
@@ -204,7 +233,7 @@ void Renderer::buildSwapChain(GLFWwindow* window) {
 }
 
 // Build a new depth buffer
-// This has to be re-called if the swap chain changes
+// This has to be re-called if the swap chain changes (e.g. on window resize)
 void Renderer::buildDepthTexture() {
     // Destroy previously allocated texture
     if (m_depthTexture != nullptr) {
@@ -219,8 +248,9 @@ void Renderer::buildDepthTexture() {
     depthTextureDesc.format = m_depthTextureFormat;
     depthTextureDesc.mipLevelCount = 1;
     depthTextureDesc.sampleCount = 1;
+
     depthTextureDesc.size = {m_swapChainDesc.width, m_swapChainDesc.height, 1};
-    depthTextureDesc.usage = TextureUsage::RenderAttachment;
+    depthTextureDesc.usage = TextureUsage::RenderAttachment | TextureUsage::TextureBinding;
     depthTextureDesc.viewFormatCount = 1;
     depthTextureDesc.viewFormats = (WGPUTextureFormat*)&m_depthTextureFormat;
     m_depthTexture = m_device.createTexture(depthTextureDesc);
@@ -413,20 +443,6 @@ bool Renderer::setPlanetPipeline(
     m_pipeline = m_device.createRenderPipeline(pipelineDesc);
     // std::cout << "Render pipeline: " << m_pipeline << std::endl;
 
-    // Create a sampler for the textures
-    SamplerDescriptor samplerDesc;
-    samplerDesc.addressModeU = AddressMode::Repeat;
-    samplerDesc.addressModeV = AddressMode::Repeat;
-    samplerDesc.addressModeW = AddressMode::Repeat;
-    samplerDesc.magFilter = FilterMode::Linear;
-    samplerDesc.minFilter = FilterMode::Linear;
-    samplerDesc.mipmapFilter = MipmapFilterMode::Linear;
-    samplerDesc.lodMinClamp = 0.0f;
-    samplerDesc.lodMaxClamp = 8.0f;
-    samplerDesc.compare = CompareFunction::Undefined;
-    samplerDesc.maxAnisotropy = 1;
-    m_sampler = m_device.createSampler(samplerDesc);
-
     // Create the sampler for the shadows
     SamplerDescriptor shadowSamplerDesc;
     shadowSamplerDesc.compare = CompareFunction::Less;
@@ -451,24 +467,26 @@ bool Renderer::setPlanetPipeline(
     m_queue.writeBuffer(m_indexBuffer, 0, m_indexData.data(), bufferDesc.size);
     m_indexCount = static_cast<int>(m_indexData.size());
 
-    // Create uniform buffer
-    bufferDesc.size = sizeof(SceneUniforms);
-    bufferDesc.usage = BufferUsage::CopyDst | BufferUsage::Uniform;
-    bufferDesc.mappedAtCreation = false;
-    m_uniformBuffer = m_device.createBuffer(bufferDesc);
-
     // Upload the initial value of the uniforms
     m_uniforms.modelMatrix = mat4x4(1.0);
     m_uniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
+    // float near = 0.01f, far = 100.0f;
+    // float size = 5.0f;
+    // m_uniforms.projectionMatrix = glm::ortho(
+    //     -size, size, -size, size, near, far);
     m_uniforms.projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
+        glm::radians(fov),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
-        0.01f, 100.0f);
+        near, far);
+    m_uniforms.invProjectionMatrix = glm::inverse(m_uniforms.projectionMatrix);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
     m_uniforms.lightDirection = glm::normalize(-mSunPosition);
     m_uniforms.baseColor = mPlanetAlbedo;
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
+    m_uniforms.fov = fov;
+    m_uniforms.width = m_swapChainDesc.width;
+    m_uniforms.height = m_swapChainDesc.height;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
 
     // Add the data to the actual bindings
@@ -496,6 +514,151 @@ bool Renderer::setPlanetPipeline(
 
     // Create the shadow pipeline after the planet one
     setShadowPipeline();
+    return true;
+}
+
+// create the ocean pipeline (mostly a shader)
+bool Renderer::setOceanPipeline() {
+    // Load the shaders
+    // std::cout << "Creating shader module..." << std::endl;
+    string shaderPath = ASSETS_DIR "/ocean/ocean.wgsl";
+    wgpu::ShaderModule shaderModule = ResourceManager::loadShaderModule(shaderPath, m_device);
+    // std::cout << "Shader module: " << shaderModule << std::endl;
+
+    // std::cout << "Creating render pipeline..." << std::endl;
+    RenderPipelineDescriptor pipelineDesc;
+    pipelineDesc.vertex.bufferCount = 0;
+    pipelineDesc.vertex.buffers = nullptr;
+    pipelineDesc.vertex.module = shaderModule;
+    pipelineDesc.vertex.entryPoint = "vs_main";
+    pipelineDesc.vertex.constantCount = 0;
+    pipelineDesc.vertex.constants = nullptr;
+
+    // pipelineDesc.primitive.topology = PrimitiveTopology::LineList; // if you want wireframes
+    pipelineDesc.primitive.topology = PrimitiveTopology::TriangleList;
+    pipelineDesc.primitive.stripIndexFormat = IndexFormat::Undefined;
+    pipelineDesc.primitive.frontFace = FrontFace::CCW;
+    pipelineDesc.primitive.cullMode = CullMode::None;
+
+    FragmentState fragmentState;
+    pipelineDesc.fragment = &fragmentState;
+    fragmentState.module = shaderModule;
+    fragmentState.entryPoint = "fs_main";
+    fragmentState.constantCount = 0;
+    fragmentState.constants = nullptr;
+
+    BlendState blendState;
+    blendState.color.srcFactor = BlendFactor::SrcAlpha;
+    blendState.color.dstFactor = BlendFactor::OneMinusSrcAlpha;
+    blendState.color.operation = BlendOperation::Add;
+    blendState.alpha.srcFactor = BlendFactor::Zero;
+    blendState.alpha.dstFactor = BlendFactor::One;
+    blendState.alpha.operation = BlendOperation::Add;
+
+    ColorTargetState colorTarget;
+    colorTarget.format = m_swapChainFormat;
+    colorTarget.blend = &blendState;
+    colorTarget.writeMask = ColorWriteMask::All;
+
+    fragmentState.targetCount = 1;
+    fragmentState.targets = &colorTarget;
+
+    pipelineDesc.multisample.count = 1;
+    pipelineDesc.multisample.mask = ~0u;
+    pipelineDesc.multisample.alphaToCoverageEnabled = false;
+
+    // Create binding layouts
+    // Just the uniforms for now: no texture or anything
+    int bindGroupEntriesCount = 4;
+    std::vector<BindGroupLayoutEntry> bindingLayoutEntries(bindGroupEntriesCount, Default);
+
+    // The uniform buffer binding
+    BindGroupLayoutEntry& bindingLayout = bindingLayoutEntries[0];
+    bindingLayout.binding = 0;
+    bindingLayout.visibility = ShaderStage::Vertex | ShaderStage::Fragment;
+    bindingLayout.buffer.type = BufferBindingType::Uniform;
+    bindingLayout.buffer.minBindingSize = sizeof(SceneUniforms);
+
+    // Planet scene depth texture sampler
+    BindGroupLayoutEntry& samplerBindingLayout = bindingLayoutEntries[1];
+    samplerBindingLayout.binding = 1;
+    samplerBindingLayout.visibility = ShaderStage::Fragment;
+    samplerBindingLayout.sampler.type = SamplerBindingType::Filtering;
+
+    // The depth texture
+    BindGroupLayoutEntry& baseColorTextureBindingLayout = bindingLayoutEntries[2];
+    baseColorTextureBindingLayout.binding = 2;
+    baseColorTextureBindingLayout.visibility = ShaderStage::Fragment;
+    baseColorTextureBindingLayout.texture.sampleType = TextureSampleType::Depth;
+    baseColorTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
+
+    // The normal map
+    BindGroupLayoutEntry& normalMapTextureBindingLayout = bindingLayoutEntries[3];
+    normalMapTextureBindingLayout.binding = 3;
+    normalMapTextureBindingLayout.visibility = ShaderStage::Fragment;
+    normalMapTextureBindingLayout.texture.sampleType = TextureSampleType::Float;
+    normalMapTextureBindingLayout.texture.viewDimension = TextureViewDimension::_2D;
+
+    // Create a bind group layout
+    BindGroupLayoutDescriptor bindGroupLayoutDesc{};
+    bindGroupLayoutDesc.entryCount = (uint32_t)bindingLayoutEntries.size();
+    bindGroupLayoutDesc.entries = bindingLayoutEntries.data();
+    BindGroupLayout bindGroupLayout = m_device.createBindGroupLayout(bindGroupLayoutDesc);
+
+    // Create the pipeline layout
+    PipelineLayoutDescriptor layoutDesc{};
+    layoutDesc.bindGroupLayoutCount = 1;
+    layoutDesc.bindGroupLayouts = (WGPUBindGroupLayout*)&bindGroupLayout;
+    PipelineLayout layout = m_device.createPipelineLayout(layoutDesc);
+    pipelineDesc.layout = layout;
+
+    mOceanPipeline = m_device.createRenderPipeline(pipelineDesc);
+
+    // Create a sampler for the textures
+    SamplerDescriptor samplerDesc;
+    samplerDesc.compare = CompareFunction::Undefined;
+    samplerDesc.maxAnisotropy = 1;
+    m_sampler = m_device.createSampler(samplerDesc);
+
+    // default radius
+    m_uniforms.oceanRadius = mGUISettings.oceanRadius;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, oceanRadius),
+        &m_uniforms.oceanRadius,
+        sizeof(SceneUniforms::oceanRadius));
+
+    // Add the data to the actual bindings
+    std::vector<BindGroupEntry> bindings(bindGroupEntriesCount);
+
+    // uniform
+    bindings[0].binding = 0;
+    bindings[0].buffer = m_uniformBuffer;
+    bindings[0].offset = 0;
+    bindings[0].size = sizeof(SceneUniforms);
+
+    // depth texture stuff
+    bindings[1].binding = 1;
+    bindings[1].sampler = m_sampler;
+    bindings[2].binding = 2;
+    bindings[2].textureView = m_depthTextureView;
+
+    // the normal map
+    string oceanNormalPath = ASSETS_DIR "/ocean/water_nm.jpg";
+    mOceanNMTexture = ResourceManager::loadTexture(
+        oceanNormalPath, m_device, &mOceanNMTextureView);
+    if (!mOceanNMTexture) {
+        std::cerr << "Could not load texture!" << std::endl;
+        return false;
+    }
+    bindings[3].binding = 3;
+    bindings[3].textureView = mOceanNMTextureView;
+
+    BindGroupDescriptor bindGroupDesc;
+    bindGroupDesc.layout = bindGroupLayout;
+    bindGroupDesc.entryCount = (uint32_t)bindings.size();
+    bindGroupDesc.entries = bindings.data();
+    mOceanBindGroup = m_device.createBindGroup(bindGroupDesc);
     return true;
 }
 
@@ -815,9 +978,9 @@ bool Renderer::setSkyboxPipeline() {
     mSkyboxUniforms.modelMatrix = glm::mat4(1.0f);
     mSkyboxUniforms.viewMatrix = glm::lookAt(vec3(1.0f), vec3(0.0f), vec3(0, 1, 0));
     mSkyboxUniforms.projectionMatrix = glm::perspective(
-        glm::radians(45.0f),
+        glm::radians(fov),
         float(m_swapChainDesc.width) / float(m_swapChainDesc.height),
-        0.01f, 100.0f);
+        near, far);
     mSkyboxUniforms.time = 1.0f;
     m_queue.writeBuffer(mSkyboxUniformBuffer, 0, &mSkyboxUniforms, sizeof(SceneUniforms));
 
@@ -871,6 +1034,12 @@ void Renderer::updateCamera(glm::vec3 position) {
         offsetof(SceneUniforms, viewMatrix),
         &m_uniforms.viewMatrix,
         sizeof(SceneUniforms::viewMatrix));
+    m_uniforms.invViewMatrix = glm::inverse(m_uniforms.viewMatrix);
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, invViewMatrix),
+        &m_uniforms.invViewMatrix,
+        sizeof(SceneUniforms::invViewMatrix));
 
     // update the view matrix for the skybox
     // we get rid of the translation part also with an intermediary mat3
@@ -882,23 +1051,13 @@ void Renderer::updateCamera(glm::vec3 position) {
         sizeof(SceneUniforms::viewMatrix));
 }
 
-void Renderer::resizeSwapChain(GLFWwindow* window) {
-    buildSwapChain(window);
-
-    // update the projection matrix so that the image keeps its aspect
-    float ratio = m_swapChainDesc.width / (float)m_swapChainDesc.height;
-    m_uniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, 0.01f, 100.0f);
+void Renderer::setOceanSettings(float oceanRadius) {
+    m_uniforms.oceanRadius = oceanRadius;
     m_queue.writeBuffer(
         m_uniformBuffer,
-        offsetof(SceneUniforms, projectionMatrix),
-        &m_uniforms.projectionMatrix,
-        sizeof(SceneUniforms::projectionMatrix));
-    mSkyboxUniforms.projectionMatrix = glm::perspective(glm::radians(45.0f), ratio, 0.01f, 100.0f);
-    m_queue.writeBuffer(
-        mSkyboxUniformBuffer,
-        offsetof(SceneUniforms, projectionMatrix),
-        &mSkyboxUniforms.projectionMatrix,
-        sizeof(SceneUniforms::projectionMatrix));
+        offsetof(SceneUniforms, oceanRadius),
+        &m_uniforms.oceanRadius,
+        sizeof(SceneUniforms::oceanRadius));
 }
 
 void Renderer::updateGui(RenderPassEncoder renderPass) {
@@ -909,7 +1068,7 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
 
     {
         // Build a demo UI
-        bool changed = false;
+        bool planetSettingsChanged = false;
         // static int counter = 0;
         // static bool show_demo_window = true;
         // static bool show_another_window = false;
@@ -928,14 +1087,23 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // }
         // ImGui::SameLine();
         // ImGui::Text("counter = %d", counter);
-        ImGui::SeparatorText("Base sphere");
-        changed = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || changed;  // count of vertices per face
-        changed = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 100.0f) || changed;
-        ImGui::SeparatorText("Noise");
-        changed = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || changed;
-        changed = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || changed;  // count of vertices per face
 
-        mGUISettings.changed = changed;
+        // Planet construction part
+        ImGui::SeparatorText("Base sphere");
+        planetSettingsChanged = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || planetSettingsChanged;  // count of vertices per face
+        planetSettingsChanged = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 10.0f) || planetSettingsChanged;
+        ImGui::SeparatorText("Noise");
+        planetSettingsChanged = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || planetSettingsChanged;
+        planetSettingsChanged = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || planetSettingsChanged;  // count of vertices per face
+
+        // Ocean part
+        ImGui::SeparatorText("Ocean");
+        bool oceanSettingsChanged = ImGui::SliderFloat("ocean radius", &(mGUISettings.oceanRadius), 1.0f, 10.0f);  // count of vertices per face
+        if (oceanSettingsChanged) {
+            setOceanSettings(mGUISettings.oceanRadius);
+        }
+
+        mGUISettings.planetSettingsChanged = planetSettingsChanged;
         ImGui::SeparatorText("Debug");
         ImGui::Text("View pos: (%.3f, %.3f, %.3f)", m_uniforms.viewPosition.x, m_uniforms.viewPosition.y, m_uniforms.viewPosition.z);
         ImGuiIO& io = ImGui::GetIO();
@@ -955,9 +1123,7 @@ void Renderer::terminatePlanetPipeline() {
     // check if there's something to release
     if (m_pipeline != nullptr) {
         m_pipeline.release();
-        m_uniformBuffer.release();
         m_bindGroup.release();
-        m_sampler.release();
 
         m_vertexBuffer.destroy();
         m_vertexBuffer.release();
@@ -968,6 +1134,9 @@ void Renderer::terminatePlanetPipeline() {
 
 void Renderer::terminate() {
     terminatePlanetPipeline();
+
+    m_uniformBuffer.release();
+    m_sampler.release();
 
     m_depthTextureView.release();
     m_depthTexture.destroy();

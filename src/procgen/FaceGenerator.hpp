@@ -43,7 +43,7 @@ class FaceGenerator {
 
                 glm::vec2 ratio = glm::vec2(x, y) / float((resolution - 1));
                 // don't know why this calculation is different from the sebastian lague code (b and a inverted ?)
-                glm::vec3 point_on_unit_cube = face_normal + (2 * ratio.x - 1) * axis_b + (2 * ratio.y - 1) * axis_a;
+                glm::vec3 point_on_unit_cube = face_normal + (2 * ratio.x - 1) * axis_a + (2 * ratio.y - 1) * axis_b;
 
                 // normalizing from the center will create a sphere
                 glm::vec3 point_on_unit_sphere = glm::normalize(point_on_unit_cube);
