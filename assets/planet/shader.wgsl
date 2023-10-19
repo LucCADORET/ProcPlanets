@@ -97,15 +97,16 @@ fn shadowCalculation(shadowPos: vec3f) -> f32 {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	let albedo = uSceneUniforms.baseColor;
+	let normal = normalize(in.normal);
 
 	// diffuse component
 	let lightDirection = normalize(-uSceneUniforms.lightDirection);
-	let incidence = max(dot(lightDirection, vec4f(in.normal, 0.0)), 0.0);
+	let incidence = max(dot(lightDirection, vec4f(normal, 0.0)), 0.0);
 	let diffuse = vec4f(albedo.xyz * incidence, 1.0);
 
 	// // The specular part
 	let viewDir = normalize(uSceneUniforms.viewPosition - in.worldPosition);
-	let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, in.normal);  
+	let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, normal);  
 	let specular = pow(max(dot(viewDir.xyz, reflectDir), 0.0), 16.0);
 
 	// Shadow computation
