@@ -32,7 +32,7 @@ bool Renderer::init(GLFWwindow* window) {
     requiredLimits.limits.maxBindGroups = 2;
     //                                    ^ This was a 1
     requiredLimits.limits.maxUniformBuffersPerShaderStage = 1;
-    requiredLimits.limits.maxUniformBufferBindingSize = 32 * 4 * sizeof(float);
+    requiredLimits.limits.maxUniformBufferBindingSize = 64 * 4 * sizeof(float);
     // Allow textures up to 4K
     requiredLimits.limits.maxTextureDimension1D = 4096;
     requiredLimits.limits.maxTextureDimension2D = 4096;
@@ -165,9 +165,6 @@ void Renderer::onFrame() {
     renderPass.setBindGroup(0, m_bindGroup, 0, nullptr);
     renderPass.drawIndexed(m_indexCount, 1, 0, 0, 0);
 
-    // We add the GUI drawing commands to the render pass
-    updateGui(renderPass);
-
     renderPass.end();
 
     // OCEAN RENDER PASS
@@ -188,6 +185,11 @@ void Renderer::onFrame() {
     oceanRenderPass.draw(6, 1, 0, 0);  // draw a double triangle
 
     oceanRenderPass.end();
+
+    // Write the GUI after everythin else to be above the rest
+    RenderPassEncoder GUIRenderPass = encoder.beginRenderPass(renderPassDesc);
+    updateGui(GUIRenderPass);
+    GUIRenderPass.end();
 
     nextTexture.release();
 
@@ -620,13 +622,8 @@ bool Renderer::setOceanPipeline() {
     samplerDesc.maxAnisotropy = 1;
     m_sampler = m_device.createSampler(samplerDesc);
 
-    // default radius
-    m_uniforms.oceanRadius = mGUISettings.oceanRadius;
-    m_queue.writeBuffer(
-        m_uniformBuffer,
-        offsetof(SceneUniforms, oceanRadius),
-        &m_uniforms.oceanRadius,
-        sizeof(SceneUniforms::oceanRadius));
+    // set the default settings on the uniforms
+    setOceanSettings();
 
     // Add the data to the actual bindings
     std::vector<BindGroupEntry> bindings(bindGroupEntriesCount);
@@ -1051,13 +1048,21 @@ void Renderer::updateCamera(glm::vec3 position) {
         sizeof(SceneUniforms::viewMatrix));
 }
 
-void Renderer::setOceanSettings(float oceanRadius) {
-    m_uniforms.oceanRadius = oceanRadius;
+void Renderer::setOceanSettings() {
+    m_uniforms.oceanRadius = mGUISettings.oceanRadius;
     m_queue.writeBuffer(
         m_uniformBuffer,
         offsetof(SceneUniforms, oceanRadius),
         &m_uniforms.oceanRadius,
         sizeof(SceneUniforms::oceanRadius));
+    m_uniforms.oceanColor.r = mGUISettings.oceanColor[0];
+    m_uniforms.oceanColor.g = mGUISettings.oceanColor[1];
+    m_uniforms.oceanColor.b = mGUISettings.oceanColor[2];
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, oceanColor),
+        &m_uniforms.oceanColor,
+        sizeof(SceneUniforms::oceanColor));
 }
 
 void Renderer::updateGui(RenderPassEncoder renderPass) {
@@ -1094,13 +1099,15 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         planetSettingsChanged = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 10.0f) || planetSettingsChanged;
         ImGui::SeparatorText("Noise");
         planetSettingsChanged = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || planetSettingsChanged;
-        planetSettingsChanged = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 50) || planetSettingsChanged;  // count of vertices per face
+        planetSettingsChanged = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 10) || planetSettingsChanged;  // count of vertices per face
 
         // Ocean part
         ImGui::SeparatorText("Ocean");
-        bool oceanSettingsChanged = ImGui::SliderFloat("ocean radius", &(mGUISettings.oceanRadius), 1.0f, 10.0f);  // count of vertices per face
+        bool oceanSettingsChanged = false;
+        oceanSettingsChanged = ImGui::SliderFloat("ocean radius", &(mGUISettings.oceanRadius), 1.0f, 10.0f) || oceanSettingsChanged;  // count of vertices per face
+        oceanSettingsChanged = ImGui::ColorEdit3("ocean color", mGUISettings.oceanColor) || oceanSettingsChanged;                     // count of vertices per face
         if (oceanSettingsChanged) {
-            setOceanSettings(mGUISettings.oceanRadius);
+            setOceanSettings();
         }
 
         mGUISettings.planetSettingsChanged = planetSettingsChanged;

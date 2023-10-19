@@ -30,6 +30,7 @@ struct GUISettings {
 
     // ocean settings
     float oceanRadius = 1.5f;
+    float oceanColor[3]{0.00, 0.55, 1.00};
 };
 
 class Renderer {
@@ -56,7 +57,7 @@ class Renderer {
     void buildShadowDepthTexture();
     void updateGui(wgpu::RenderPassEncoder renderPass);
     bool setShadowPipeline();
-    void setOceanSettings(float oceanRadius);
+    void setOceanSettings();
 
     // (Just aliases to make notations lighter)
     using mat4x4 = glm::mat4x4;
@@ -86,6 +87,7 @@ class Renderer {
         float height;
 
         // ocean settings
+        vec4 oceanColor;
         float oceanRadius;
         float _pad[3];
     };

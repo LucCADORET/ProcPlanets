@@ -16,6 +16,7 @@ struct SceneUniforms {
     fov: f32,
     width: f32,
     height: f32,
+    oceanColor: vec4f,
     oceanRadius: f32,
 };
 
@@ -159,7 +160,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let alpha = clamp(depth / max_depth, 0.3, 0.8);
 
     // blue ocean color
-    let base_ocean_color = vec3f(0.00, 0.55, 1.00);
+    let base_ocean_color = uSceneUniforms.oceanColor.xyz;
 
     // compute the normal of the sphere
     let hit_point = eyePos + ray; // hit point world pos
