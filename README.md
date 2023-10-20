@@ -13,14 +13,8 @@ A small tool to generate 3D planets, using native WebGPU. The goal of this tool 
 - Procedural shape and normal generation with noise
 - Post-process ocean on a ray-traced sphere
 - Triplanar texture mapping
-- GUI for tweaking the parameters
-  - TODO: texture bombing
-  - TODO: BRDF ??
-- TODO: Multiple level of details
-- TODO: Flight simulator:
-  - TODO: Physics and collision detection
-
-## TODOs
+- 
+## TODOs and Ideas
 
 More important is on top (or not)
 
@@ -36,14 +30,11 @@ More important is on top (or not)
   - view frustrum of the shadow rendering should change depending on the planet radius (breaks if planet too big)
   - could add percentage-closer filtering
 - improve the terrain edition for more "earth-like" aspect
-  - plateaux
+  - more variety of shapes: plateau, crests... 
   - less regular "wavyness" with a lot of flat parts but also some high and some deep parts ?
 - add props on the surface
-  - trees
-  - rocks ??
-- add ocean and ocean shader
-- compute the planet on the GPU
-- add atmosphere
+  - trees, rocks, grass/vegetation
+- compute the geometry on a compute shader ?
 - add LOD
 - add flight simulator
   - spawn from camera
