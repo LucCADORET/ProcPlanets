@@ -21,10 +21,14 @@ struct SceneUniforms {
 	viewPosition: vec4f,
     time: f32,
     fov: f32,
+	// terrainShininess: f32,
+	// terrainKSpecular: f32,
     width: f32,
     height: f32,
     oceanColor: vec4f,
     oceanRadius: f32,
+    oceanShininess: f32,
+    oceanKSpecular: f32,
 };
 
 @group(0) @binding(0) var<uniform> uSceneUniforms: SceneUniforms;

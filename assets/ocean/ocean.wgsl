@@ -14,10 +14,14 @@ struct SceneUniforms {
     viewPosition: vec4f,
     time: f32,
     fov: f32,
+    // terrainShininess: f32,
+    // terrainKSpecular: f32,
     width: f32,
     height: f32,
     oceanColor: vec4f,
     oceanRadius: f32,
+    oceanShininess: f32,
+    oceanKSpecular: f32,
 };
 
 struct VertexOutput {
@@ -175,11 +179,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     let worldPosition = hit_point;
     let viewDir = normalize(-ray);
     let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, normal);  
-    let specular: f32 = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
+    let specular: f32 = pow(max(dot(viewDir, reflectDir), 0.0), uSceneUniforms.oceanShininess);
     
     // Final output
     // let light_color = vec4f(1.0);
-	  let color: vec4f = diffuse + specular;
+	  let color: vec4f = diffuse + uSceneUniforms.oceanKSpecular * specular;
 
     // gamma correction
     let corrected_color = pow(color.xyz, vec3f(2.2));

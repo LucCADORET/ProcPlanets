@@ -9,10 +9,11 @@ A small tool to generate 3D planets, using native WebGPU. The goal of this tool 
 
 ## Features
 
-- Skybox
 - Procedural shape and normal generation with noise
 - Post-process ocean on a ray-traced sphere
 - Triplanar texture mapping
+- Shadow map
+- Skybox
 - 
 ## TODOs and Ideas
 
