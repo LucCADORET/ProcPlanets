@@ -483,13 +483,13 @@ bool Renderer::setPlanetPipeline(
     m_uniforms.invProjectionMatrix = glm::inverse(m_uniforms.projectionMatrix);
     m_uniforms.color = {0.0f, 1.0f, 0.4f, 1.0f};
     m_uniforms.lightDirection = glm::normalize(-mSunPosition);
-    m_uniforms.baseColor = mPlanetAlbedo;
     m_uniforms.viewPosition = vec4(0.0f);  // dunno how to init this one...
     m_uniforms.time = 1.0f;
     m_uniforms.fov = fov;
     m_uniforms.width = m_swapChainDesc.width;
     m_uniforms.height = m_swapChainDesc.height;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
+    setTerrainMaterialSettings();
 
     // Add the data to the actual bindings
     std::vector<BindGroupEntry> bindings(binGroupEntriesCount);
@@ -1065,6 +1065,17 @@ void Renderer::setOceanSettings() {
         sizeof(SceneUniforms::oceanColor));
 }
 
+void Renderer::setTerrainMaterialSettings() {
+    m_uniforms.baseColor.r = mGUISettings.baseColor[0];
+    m_uniforms.baseColor.g = mGUISettings.baseColor[1];
+    m_uniforms.baseColor.b = mGUISettings.baseColor[2];
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, baseColor),
+        &m_uniforms.baseColor,
+        sizeof(SceneUniforms::baseColor));
+}
+
 void Renderer::updateGui(RenderPassEncoder renderPass) {
     // Start the Dear ImGui frame
     ImGui_ImplWGPU_NewFrame();
@@ -1085,8 +1096,6 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // ImGui::Checkbox("Demo Window", &show_demo_window);  // Edit bools storing our window open/close state
         // ImGui::Checkbox("Another Window", &show_another_window);
 
-        // ImGui::ColorEdit3("clear color", (float*)&clear_color);  // Edit 3 floats representing a color
-
         // if (ImGui::Button("Button")) {  // Buttons return true when clicked (most widgets return true when edited/activated)
         //     counter++;
         // }
@@ -1094,12 +1103,19 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // ImGui::Text("counter = %d", counter);
 
         // Planet construction part
-        ImGui::SeparatorText("Base sphere");
+        ImGui::SeparatorText("Planet shape");
         planetSettingsChanged = ImGui::SliderInt("resolution", &(mGUISettings.resolution), 2, 500) || planetSettingsChanged;  // count of vertices per face
         planetSettingsChanged = ImGui::SliderFloat("radius", &(mGUISettings.radius), 1.0f, 10.0f) || planetSettingsChanged;
-        ImGui::SeparatorText("Noise");
-        planetSettingsChanged = ImGui::SliderFloat("frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || planetSettingsChanged;
-        planetSettingsChanged = ImGui::SliderInt("octaves", &(mGUISettings.octaves), 1, 10) || planetSettingsChanged;  // count of vertices per face
+        planetSettingsChanged = ImGui::SliderFloat("noise frequency", &(mGUISettings.frequency), 0.001f, 5.0f) || planetSettingsChanged;
+        planetSettingsChanged = ImGui::SliderInt("noise octaves", &(mGUISettings.octaves), 1, 10) || planetSettingsChanged;  // count of vertices per face
+
+        // Planet terrain material
+        ImGui::SeparatorText("Terrain material");
+        bool terrainMaterialSettingsChanged = false;
+        terrainMaterialSettingsChanged = ImGui::ColorEdit3("base color", mGUISettings.baseColor) || terrainMaterialSettingsChanged;  // count of vertices per face
+        if (terrainMaterialSettingsChanged) {
+            setTerrainMaterialSettings();
+        }
 
         // Ocean part
         ImGui::SeparatorText("Ocean");

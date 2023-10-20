@@ -19,14 +19,15 @@ using VertexAttributes = ResourceManager::VertexAttributes;
 
 struct GUISettings {
     // default to true for the initial render
-    // is only for the planet stuff
+    // is only for the planet shape stuff
     bool planetSettingsChanged = true;
     int resolution = 100;
     float radius = 1.0;
-
-    // noise settings
     float frequency = 1.0f;
     int octaves = 8;
+
+    // terrain material settings
+    float baseColor[3]{0.48, 0.39, 0.31};
 
     // ocean settings
     float oceanRadius = 1.5f;
@@ -58,6 +59,7 @@ class Renderer {
     void updateGui(wgpu::RenderPassEncoder renderPass);
     bool setShadowPipeline();
     void setOceanSettings();
+    void setTerrainMaterialSettings();
 
     // (Just aliases to make notations lighter)
     using mat4x4 = glm::mat4x4;
@@ -98,7 +100,6 @@ class Renderer {
     // TODO: make the sun it further, it could collide with the model if it gets better
     // It is used for lighting calculation mostly
     vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
-    vec4 mPlanetAlbedo = vec4({0.48, 0.39, 0.31, 1.0f});
     float near = 0.01f;
     float far = 100.0f;
     float fov = 45.0f;
