@@ -28,7 +28,7 @@ struct GUISettings {
 
     // terrain material settings
     float baseColor[3]{0.48, 0.39, 0.31};
-    float terrainShininess = 32.0f;
+    float terrainShininess = 16.0f;
     float terrainKSpecular = 1.0f;
 
     // ocean settings
@@ -87,19 +87,20 @@ class Renderer {
         vec4 viewPosition;
         float time;
         float fov;
-        // float terrainShininess;
-        // float terrainKSpecular;
+        float terrainShininess;
+        float terrainKSpecular;
 
         // swapchain height size
         float width;
         float height;
+        float _pad1[2];
 
         // ocean settings
         vec4 oceanColor;
         float oceanRadius;
         float oceanShininess;
         float oceanKSpecular;
-        float _pad[1];
+        float _pad2[1];
     };
     // Have the compiler check byte alignment
     static_assert(sizeof(SceneUniforms) % 16 == 0);

@@ -30,8 +30,8 @@ struct SceneUniforms {
 	viewPosition: vec4f,
     time: f32,
     fov: f32,
-	// terrainShininess: f32,
-	// terrainKSpecular: f32,
+	terrainShininess: f32,
+	terrainKSpecular: f32,
     width: f32,
     height: f32,
     oceanColor: vec4f,
@@ -112,13 +112,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
 	// // The specular part
 	let viewDir = normalize(uSceneUniforms.viewPosition - in.worldPosition);
 	let reflectDir = reflect(uSceneUniforms.lightDirection.xyz, normal);  
-	let specular = pow(max(dot(viewDir.xyz, reflectDir), 0.0), 16.0);
+	let specular = pow(max(dot(viewDir.xyz, reflectDir), 0.0), uSceneUniforms.terrainShininess);
 
 	// Shadow computation
 	let lightingFactor: f32 = shadowCalculation(in.shadowPos);       
 
 	// Final output
-	let color: vec4f = (lightingFactor * (diffuse + specular));
+	let color: vec4f = (lightingFactor * (diffuse + uSceneUniforms.terrainKSpecular * specular));
 
 	// gamma correction
     let corrected_color = pow(color, vec4f(2.2));

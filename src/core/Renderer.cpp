@@ -489,6 +489,8 @@ bool Renderer::setPlanetPipeline(
     m_uniforms.width = m_swapChainDesc.width;
     m_uniforms.height = m_swapChainDesc.height;
     m_queue.writeBuffer(m_uniformBuffer, 0, &m_uniforms, sizeof(SceneUniforms));
+
+    // also write the base settings to the uniform
     setTerrainMaterialSettings();
 
     // Add the data to the actual bindings
@@ -1086,18 +1088,18 @@ void Renderer::setTerrainMaterialSettings() {
         offsetof(SceneUniforms, baseColor),
         &m_uniforms.baseColor,
         sizeof(SceneUniforms::baseColor));
-    // m_uniforms.terrainShininess = mGUISettings.terrainShininess;
-    // m_queue.writeBuffer(
-    //     m_uniformBuffer,
-    //     offsetof(SceneUniforms, terrainShininess),
-    //     &m_uniforms.terrainShininess,
-    //     sizeof(SceneUniforms::terrainShininess));
-    // m_uniforms.terrainKSpecular = mGUISettings.terrainKSpecular;
-    // m_queue.writeBuffer(
-    //     m_uniformBuffer,
-    //     offsetof(SceneUniforms, terrainKSpecular),
-    //     &m_uniforms.terrainKSpecular,
-    //     sizeof(SceneUniforms::terrainKSpecular));
+    m_uniforms.terrainShininess = mGUISettings.terrainShininess;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, terrainShininess),
+        &m_uniforms.terrainShininess,
+        sizeof(SceneUniforms::terrainShininess));
+    m_uniforms.terrainKSpecular = mGUISettings.terrainKSpecular;
+    m_queue.writeBuffer(
+        m_uniformBuffer,
+        offsetof(SceneUniforms, terrainKSpecular),
+        &m_uniforms.terrainKSpecular,
+        sizeof(SceneUniforms::terrainKSpecular));
 }
 
 void Renderer::updateGui(RenderPassEncoder renderPass) {
@@ -1136,9 +1138,9 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // Planet terrain material
         ImGui::SeparatorText("Terrain material");
         bool terrainMaterialSettingsChanged = false;
-        terrainMaterialSettingsChanged = ImGui::ColorEdit3("base color", mGUISettings.baseColor) || terrainMaterialSettingsChanged;                    // count of vertices per face
-        // terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain shininess", &(mGUISettings.terrainShininess), 0.0, 256.0) || terrainMaterialSettingsChanged;   // count of vertices per face
-        // terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain K specular", &(mGUISettings.terrainKSpecular), 0.0, 1.0) || terrainMaterialSettingsChanged;  // count of vertices per face
+        terrainMaterialSettingsChanged = ImGui::ColorEdit3("base color", mGUISettings.baseColor) || terrainMaterialSettingsChanged;  // count of vertices per face
+        terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain shininess", &(mGUISettings.terrainShininess), 0.0, 256.0) || terrainMaterialSettingsChanged;   // count of vertices per face
+        terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain K specular", &(mGUISettings.terrainKSpecular), 0.0, 1.0) || terrainMaterialSettingsChanged;  // count of vertices per face
         if (terrainMaterialSettingsChanged) {
             setTerrainMaterialSettings();
         }
@@ -1146,10 +1148,10 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // Ocean part
         ImGui::SeparatorText("Ocean");
         bool oceanSettingsChanged = false;
-        oceanSettingsChanged = ImGui::SliderFloat("ocean radius", &(mGUISettings.oceanRadius), 1.0f, 10.0f) || oceanSettingsChanged;  // count of vertices per face
-        oceanSettingsChanged = ImGui::ColorEdit3("ocean color", mGUISettings.oceanColor) || oceanSettingsChanged;                     // count of vertices per face
-        oceanSettingsChanged = ImGui::SliderFloat("ocean shininess", &(mGUISettings.oceanShininess), 0.0, 256.0) || oceanSettingsChanged;                     // count of vertices per face
-        oceanSettingsChanged = ImGui::SliderFloat("ocean K specular", &(mGUISettings.oceanKSpecular), 0.0, 1.0) || oceanSettingsChanged;                     // count of vertices per face
+        oceanSettingsChanged = ImGui::SliderFloat("ocean radius", &(mGUISettings.oceanRadius), 1.0f, 10.0f) || oceanSettingsChanged;       // count of vertices per face
+        oceanSettingsChanged = ImGui::ColorEdit3("ocean color", mGUISettings.oceanColor) || oceanSettingsChanged;                          // count of vertices per face
+        oceanSettingsChanged = ImGui::SliderFloat("ocean shininess", &(mGUISettings.oceanShininess), 0.0, 256.0) || oceanSettingsChanged;  // count of vertices per face
+        oceanSettingsChanged = ImGui::SliderFloat("ocean K specular", &(mGUISettings.oceanKSpecular), 0.0, 1.0) || oceanSettingsChanged;   // count of vertices per face
         if (oceanSettingsChanged) {
             setOceanSettings();
         }
