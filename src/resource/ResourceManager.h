@@ -61,15 +61,6 @@ class ResourceManager {
         vec3 bitangent;
     };
 
-    // a struct to define a bundle of resources that will be used to render a scene
-    // following a convention
-    struct ResourceBundle {
-        string shaderPath;  // TODO: actually the shader should be always the same ?
-        string objPath;
-        string baseColorTexturePath;
-        string normalMapTexturePath;
-    };
-
     // Load a shader from a WGSL file into a new shader module
     static wgpu::ShaderModule
     loadShaderModule(const path& path, wgpu::Device m_device);

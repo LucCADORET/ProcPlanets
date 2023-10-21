@@ -49,9 +49,9 @@ class Renderer {
     void terminate();
     void terminatePlanetPipeline();
     void onFrame();
-    wgpu::Device getDevice() { return m_device; };
-    wgpu::TextureFormat getSwapChainFormat() { return m_swapChainFormat; };
-    wgpu::TextureFormat getDepthTextureFormat() { return m_depthTextureFormat; };
+    wgpu::Device getDevice() { return mDevice; };
+    wgpu::TextureFormat getSwapChainFormat() { return mSwapChainFormat; };
+    wgpu::TextureFormat getDepthTextureFormat() { return mDepthTextureFormat; };
     void updateCamera(glm::vec3 position);
     void resizeSwapChain(GLFWwindow* window);
     GUISettings getGUISettings() { return mGUISettings; };
@@ -106,46 +106,45 @@ class Renderer {
     static_assert(sizeof(SceneUniforms) % 16 == 0);
 
     // some constant settings
-    // TODO: make the sun it further, it could collide with the model if it gets better
-    // It is used for lighting calculation mostly
+    // TODO: make the sun further ? Shadows are buggy on big planet.
     vec4 mSunPosition = vec4({54.0f, 7.77f, 2.5f, 0.0f});
     float near = 0.01f;
     float far = 100.0f;
     float fov = 45.0f;
 
-    wgpu::Instance m_instance = nullptr;
-    wgpu::Surface m_surface = nullptr;
-    wgpu::Adapter m_adapter = nullptr;
-    wgpu::Device m_device = nullptr;
-    wgpu::Queue m_queue = nullptr;
-    wgpu::SwapChain m_swapChain = nullptr;
-    wgpu::SwapChainDescriptor m_swapChainDesc;
+    wgpu::Instance mInstance = nullptr;
+    wgpu::Surface mSurface = nullptr;
+    wgpu::Adapter mAdapter = nullptr;
+    wgpu::Device mDevice = nullptr;
+    wgpu::Queue mQueue = nullptr;
+    wgpu::SwapChain mSwapChain = nullptr;
+    wgpu::SwapChainDescriptor mSwapChainDesc;
 
     // depth texture
-    wgpu::Texture m_depthTexture = nullptr;
-    wgpu::TextureView m_depthTextureView = nullptr;
+    wgpu::Texture mDepthTexture = nullptr;
+    wgpu::TextureView mDepthTextureView = nullptr;
 
     // should public and/or gettable ?
-    wgpu::TextureFormat m_swapChainFormat = wgpu::TextureFormat::Undefined;
-    wgpu::TextureFormat m_depthTextureFormat = wgpu::TextureFormat::Depth24Plus;
+    wgpu::TextureFormat mSwapChainFormat = wgpu::TextureFormat::Undefined;
+    wgpu::TextureFormat mDepthTextureFormat = wgpu::TextureFormat::Depth24Plus;
 
-    // the scene pipeline and stuff related to it
-    wgpu::RenderPipeline m_pipeline = nullptr;
-    wgpu::Sampler m_sampler = nullptr;
-    wgpu::Buffer m_vertexBuffer = nullptr;
-    wgpu::Buffer m_indexBuffer = nullptr;
-    wgpu::Buffer m_uniformBuffer = nullptr;
-    wgpu::BindGroup m_bindGroup = nullptr;
+    // the planet geometry pipeline data
+    wgpu::RenderPipeline mPipeline = nullptr;
+    wgpu::Sampler mSampler = nullptr;
+    wgpu::Buffer mVertexBuffer = nullptr;
+    wgpu::Buffer mIndexBuffer = nullptr;
+    wgpu::Buffer mUniformBuffer = nullptr;
+    wgpu::BindGroup mBindGroup = nullptr;
 
     // Error callback set on the device (for debugging)
-    std::unique_ptr<wgpu::ErrorCallback> m_errorCallbackHandle;
+    std::unique_ptr<wgpu::ErrorCallback> mErrorCallbackHandle;
 
     // Model rendering part
-    SceneUniforms m_uniforms;
-    int m_vertexCount;
-    int m_indexCount;
-    vector<ResourceManager::VertexAttributes> m_vertexData;
-    vector<uint32_t> m_indexData;
+    SceneUniforms mUniforms;
+    int mVertexCount;
+    int mIndexCount;
+    vector<ResourceManager::VertexAttributes> mVertexData;
+    vector<uint32_t> mIndexData;
     wgpu::TextureView mBaseColorTextureView = nullptr;  // keep track of it for later cleanup
     wgpu::Texture mBaseColorTexture = nullptr;
     wgpu::TextureView mNormalMapTextureView = nullptr;  // keep track of it for later cleanup

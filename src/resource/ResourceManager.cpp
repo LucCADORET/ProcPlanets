@@ -111,7 +111,6 @@ bool ResourceManager::loadGeometryFromObj(const path& path, std::vector<VertexAt
     }
 
     computeTextureFrameAttributes(vertexData);
-
     return true;
 }
 
