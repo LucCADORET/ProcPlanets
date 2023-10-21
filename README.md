@@ -5,7 +5,7 @@ A small tool to generate 3D planets, using native WebGPU. The goal of this tool 
 ## Build
 
 - clone the `glfw`, `glfw3webgpu`, `glm` git submodules to the `external` folder
-- clone the `imgui` repo and add to it a `CMakeLists.txt` to it found here: https://eliemichel.github.io/LearnWebGPU/basic-3d-rendering/some-interaction/simple-gui.html#setting-up-imgui
+- clone the `imgui` repo and add to it the `CMakeLists.txt` found here: https://eliemichel.github.io/LearnWebGPU/basic-3d-rendering/some-interaction/simple-gui.html#setting-up-imgui
 
 ## Features
 
@@ -13,18 +13,18 @@ A small tool to generate 3D planets, using native WebGPU. The goal of this tool 
 - Post-process ocean on a ray-traced sphere
 - Triplanar texture mapping
 - Shadow map
-- Skybox
-- 
+- Skybox from https://tools.wwwtyro.net/space-3d/index.html 
+
 ## TODOs and Ideas
 
 More important is on top (or not)
 
 - add some textures ?
   - would be nice to have a drag and drop to test a texture
-- atmosphere !!
+- atmosphere
 - ocean shader
   - the transparency of the ocean when there's no light is ugly
-  - actual waves ??
+  - actual waves
 - add a slow rotation of the planet: can give a better idea of the of the looks of the shadows
 - shadows:
   - how to make the shadows less "blocky" ? is there other methods to do the shadows ?
