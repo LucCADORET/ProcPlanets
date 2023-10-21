@@ -1111,22 +1111,7 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
     {
         // Build a demo UI
         bool planetSettingsChanged = false;
-        // static int counter = 0;
-        // static bool show_demo_window = true;
-        // static bool show_another_window = false;
-        // static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
         ImGui::Begin("Settings");  // Create a window called "Hello, world!" and append into it.
-
-        // ImGui::Text("This is some useful text.");           // Display some text (you can use a format strings too)
-        // ImGui::Checkbox("Demo Window", &show_demo_window);  // Edit bools storing our window open/close state
-        // ImGui::Checkbox("Another Window", &show_another_window);
-
-        // if (ImGui::Button("Button")) {  // Buttons return true when clicked (most widgets return true when edited/activated)
-        //     counter++;
-        // }
-        // ImGui::SameLine();
-        // ImGui::Text("counter = %d", counter);
 
         // Planet construction part
         ImGui::SeparatorText("Planet shape");
@@ -1138,9 +1123,9 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
         // Planet terrain material
         ImGui::SeparatorText("Terrain material");
         bool terrainMaterialSettingsChanged = false;
-        terrainMaterialSettingsChanged = ImGui::ColorEdit3("base color", mGUISettings.baseColor) || terrainMaterialSettingsChanged;  // count of vertices per face
-        terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain shininess", &(mGUISettings.terrainShininess), 0.0, 256.0) || terrainMaterialSettingsChanged;   // count of vertices per face
-        terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain K specular", &(mGUISettings.terrainKSpecular), 0.0, 1.0) || terrainMaterialSettingsChanged;  // count of vertices per face
+        terrainMaterialSettingsChanged = ImGui::ColorEdit3("base color", mGUISettings.baseColor) || terrainMaterialSettingsChanged;                                // count of vertices per face
+        terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain shininess", &(mGUISettings.terrainShininess), 0.0, 256.0) || terrainMaterialSettingsChanged;  // count of vertices per face
+        terrainMaterialSettingsChanged = ImGui::SliderFloat("terrain K specular", &(mGUISettings.terrainKSpecular), 0.0, 1.0) || terrainMaterialSettingsChanged;   // count of vertices per face
         if (terrainMaterialSettingsChanged) {
             setTerrainMaterialSettings();
         }
@@ -1166,10 +1151,8 @@ void Renderer::updateGui(RenderPassEncoder renderPass) {
 
     // Draw the UI
     ImGui::EndFrame();
-    // Convert the UI defined above into low-level drawing commands
-    ImGui::Render();
-    // Execute the low-level drawing commands on the WebGPU backend
-    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
+    ImGui::Render();                                                  // Convert the UI defined above into low-level drawing commands
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);  // Execute the low-level drawing commands on the WebGPU backend
 }
 
 void Renderer::terminatePlanetPipeline() {
