@@ -2,6 +2,12 @@
 
 A small tool to generate 3D planets, using native WebGPU. The goal of this tool is mainly to train myself on WebGPU, various graphics programming techniques, and procedural generation.
 
+[Showcase here](https://www.youtube.com/watch?v=k6khiZQBrrY)
+
+![Example 1](./assets/planet_1.png "Example 1")
+![Example 2](./assets/planet_2.png "Example 2")
+![Example 3](./assets/planet_3.png "Example 3")
+
 ## Build
 
 - clone the `glfw`, `glfw3webgpu`, `glm` git submodules to the `external` folder
