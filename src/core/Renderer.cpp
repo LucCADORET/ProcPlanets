@@ -202,7 +202,7 @@ void Renderer::onFrame() {
 
 #ifdef WEBGPU_BACKEND_DAWN
     // Check for pending error callbacks
-    m_device.tick();
+    mDevice.tick();
 #endif
 }
 
@@ -221,7 +221,7 @@ void Renderer::buildSwapChain(GLFWwindow* window) {
 #ifdef WEBGPU_BACKEND_WGPU
     mSwapChainFormat = mSurface.getPreferredFormat(mAdapter);
 #else
-    m_swapChainFormat = TextureFormat::BGRA8Unorm;
+    mSwapChainFormat = TextureFormat::BGRA8Unorm;
 #endif
     mSwapChainDesc.width = static_cast<uint32_t>(width);
     mSwapChainDesc.height = static_cast<uint32_t>(height);
@@ -443,7 +443,6 @@ bool Renderer::setPlanetPipeline(
     pipelineDesc.layout = layout;
 
     mPipeline = mDevice.createRenderPipeline(pipelineDesc);
-    // std::cout << "Render pipeline: " << m_pipeline << std::endl;
 
     // Create the sampler for the shadows
     SamplerDescriptor shadowSamplerDesc;
@@ -472,10 +471,6 @@ bool Renderer::setPlanetPipeline(
     // Upload the initial value of the uniforms
     mUniforms.modelMatrix = mat4x4(1.0);
     mUniforms.viewMatrix = glm::lookAt(vec3(-2.0f, -3.0f, 2.0f), vec3(0.0f), vec3(0, 1, 0));
-    // float near = 0.01f, far = 100.0f;
-    // float size = 5.0f;
-    // m_uniforms.projectionMatrix = glm::ortho(
-    //     -size, size, -size, size, near, far);
     mUniforms.projectionMatrix = glm::perspective(
         glm::radians(fov),
         float(mSwapChainDesc.width) / float(mSwapChainDesc.height),
@@ -766,7 +761,6 @@ bool Renderer::setShadowPipeline() {
 
     // the view matrix should be from the light's perspective
     auto viewMatrix = glm::lookAt(vec3(mSunPosition), vec3(0.0f), vec3(0, 1, 0));
-    // auto viewMatrix = glm::lookAt(-vec3(m_uniforms.lightDirection), vec3(0.0f), vec3(0, 1, 0));
 
     // the projection should be ortholinear since the light source is infinitely far
     float near = 0.01f, far = 100.0f;
@@ -1019,7 +1013,6 @@ bool Renderer::setSkyboxPipeline() {
 void Renderer::updateCamera(glm::vec3 position) {
     // update the view position
     mUniforms.viewPosition = glm::vec4(position.x, position.y, position.z, 1.0);
-    // cout << m_uniforms.viewPosition.x << ' ' << m_uniforms.viewPosition.y << ' ' << m_uniforms.viewPosition.z << endl;
     mQueue.writeBuffer(
         mUniformBuffer,
         offsetof(SceneUniforms, viewPosition),

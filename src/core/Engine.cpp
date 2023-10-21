@@ -67,25 +67,25 @@ bool Engine::onInit() {
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    m_window = glfwCreateWindow(windowHeight, windowWidth, "Learn WebGPU", NULL, NULL);
-    if (!m_window) {
+    mWindow = glfwCreateWindow(windowHeight, windowWidth, "Learn WebGPU", NULL, NULL);
+    if (!mWindow) {
         std::cerr << "Could not open window!" << std::endl;
         return false;
     }
 
-    m_renderer.init(m_window);
+    mRenderer.init(mWindow);
 
     // setup the skybox
-    m_renderer.setSkyboxPipeline();
+    mRenderer.setSkyboxPipeline();
 
     // setup the ocean
-    m_renderer.setOceanPipeline();
+    mRenderer.setOceanPipeline();
 
     // Setup GLFW callbacks
-    glfwSetWindowUserPointer(m_window, this);
-    glfwSetCursorPosCallback(m_window, onWindowMouseMove);
-    glfwSetMouseButtonCallback(m_window, onWindowMouseButton);
-    glfwSetScrollCallback(m_window, onWindowScroll);
+    glfwSetWindowUserPointer(mWindow, this);
+    glfwSetCursorPosCallback(mWindow, onWindowMouseMove);
+    glfwSetMouseButtonCallback(mWindow, onWindowMouseButton);
+    glfwSetScrollCallback(mWindow, onWindowScroll);
 
     initGui();
 
@@ -94,15 +94,15 @@ bool Engine::onInit() {
 
 void Engine::onFrame() {
     // if the settings changed, take down the current pipeline and rebuild the planet
-    GUISettings settings = m_renderer.getGUISettings();
+    GUISettings settings = mRenderer.getGUISettings();
     if (settings.planetSettingsChanged) {
-        m_renderer.terminatePlanetPipeline();
+        mRenderer.terminatePlanetPipeline();
         std::vector<VertexAttributes> vertexData;
         std::vector<uint32_t> indices;
-        m_planetGenerator.generatePlanetData(vertexData, indices, settings);
+        mPlanetGenerator.generatePlanetData(vertexData, indices, settings);
 
         // TODO: why remake the whole pipeline ? only the data changes
-        m_renderer.setPlanetPipeline(vertexData, indices);
+        mRenderer.setPlanetPipeline(vertexData, indices);
 
         // update the view matrix to match the current camera position
         updateViewMatrix();
@@ -110,33 +110,33 @@ void Engine::onFrame() {
 
     glfwPollEvents();
     updateDragInertia();
-    m_renderer.onFrame();
+    mRenderer.onFrame();
 }
 
 void Engine::onFinish() {
-    m_renderer.terminate();
-    glfwDestroyWindow(m_window);
+    mRenderer.terminate();
+    glfwDestroyWindow(mWindow);
     glfwTerminate();
 }
 
 bool Engine::isRunning() {
-    return !glfwWindowShouldClose(m_window);
+    return !glfwWindowShouldClose(mWindow);
 }
 
 void Engine::onMouseMove(double xpos, double ypos) {
-    if (m_drag.active) {
+    if (mDragState.active) {
         glm::vec2 currentMouse = glm::vec2(-(float)xpos, (float)ypos);
-        glm::vec2 delta = (currentMouse - m_drag.startMouse) * m_drag.sensitivity;
-        m_cameraState.angles.x = m_drag.startCameraState.angles.x - delta.x;
-        m_cameraState.angles.y = m_drag.startCameraState.angles.y + delta.y;
+        glm::vec2 delta = (currentMouse - mDragState.startMouse) * mDragState.sensitivity;
+        mCameraState.angles.x = mDragState.startCameraState.angles.x - delta.x;
+        mCameraState.angles.y = mDragState.startCameraState.angles.y + delta.y;
         // Clamp to avoid going too far when orbitting up/down
-        m_cameraState.angles.y = glm::clamp(m_cameraState.angles.y, -PI / 2 + 1e-5f, PI / 2 - 1e-5f);
+        mCameraState.angles.y = glm::clamp(mCameraState.angles.y, -PI / 2 + 1e-5f, PI / 2 - 1e-5f);
         updateViewMatrix();
 
         // Inertia
-        m_drag.velocity = delta - m_drag.previousDelta;
+        mDragState.velocity = delta - mDragState.previousDelta;
         // std::cout << m_drag.velocity.x << " " << m_drag.velocity.y << std::endl;
-        m_drag.previousDelta = delta;
+        mDragState.previousDelta = delta;
     }
 }
 
@@ -151,48 +151,48 @@ void Engine::onMouseButton(int button, int action, [[maybe_unused]] int modifier
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         switch (action) {
             case GLFW_PRESS:
-                m_drag.active = true;
+                mDragState.active = true;
                 double xpos, ypos;
-                glfwGetCursorPos(m_window, &xpos, &ypos);
-                m_drag.startMouse = glm::vec2(-(float)xpos, (float)ypos);
-                m_drag.startCameraState = m_cameraState;
+                glfwGetCursorPos(mWindow, &xpos, &ypos);
+                mDragState.startMouse = glm::vec2(-(float)xpos, (float)ypos);
+                mDragState.startCameraState = mCameraState;
                 break;
             case GLFW_RELEASE:
-                m_drag.active = false;
+                mDragState.active = false;
                 break;
         }
     }
 }
 
 void Engine::onScroll([[maybe_unused]] double xoffset, double yoffset) {
-    m_cameraState.zoom += m_drag.scrollSensitivity * (float)yoffset;
-    m_cameraState.zoom = glm::clamp(m_cameraState.zoom, -4.0f, 2.0f);
+    mCameraState.zoom += mDragState.scrollSensitivity * (float)yoffset;
+    mCameraState.zoom = glm::clamp(mCameraState.zoom, -4.0f, 2.0f);
     updateViewMatrix();
 }
 
 void Engine::updateViewMatrix() {
-    float cx = cos(m_cameraState.angles.x);
-    float sx = sin(m_cameraState.angles.x);
-    float cy = cos(m_cameraState.angles.y);
-    float sy = sin(m_cameraState.angles.y);
-    glm::vec3 position = glm::vec3(cx * cy, sy, sx * cy) * std::exp(-m_cameraState.zoom);
-    m_renderer.updateCamera(position);
+    float cx = cos(mCameraState.angles.x);
+    float sx = sin(mCameraState.angles.x);
+    float cy = cos(mCameraState.angles.y);
+    float sy = sin(mCameraState.angles.y);
+    glm::vec3 position = glm::vec3(cx * cy, sy, sx * cy) * std::exp(-mCameraState.zoom);
+    mRenderer.updateCamera(position);
 }
 
 void Engine::updateDragInertia() {
     constexpr float eps = 1e-4f;
     // Apply inertia only when the user released the click.
-    if (!m_drag.active) {
+    if (!mDragState.active) {
         // Avoid updating the matrix when the velocity is no longer noticeable
-        if (std::abs(m_drag.velocity.x) < eps && std::abs(m_drag.velocity.y) < eps) {
+        if (std::abs(mDragState.velocity.x) < eps && std::abs(mDragState.velocity.y) < eps) {
             return;
         }
-        m_cameraState.angles.x -= m_drag.velocity.x;
-        m_cameraState.angles.y += m_drag.velocity.y;
-        m_cameraState.angles.y = glm::clamp(m_cameraState.angles.y, -PI / 2 + 1e-5f, PI / 2 - 1e-5f);
+        mCameraState.angles.x -= mDragState.velocity.x;
+        mCameraState.angles.y += mDragState.velocity.y;
+        mCameraState.angles.y = glm::clamp(mCameraState.angles.y, -PI / 2 + 1e-5f, PI / 2 - 1e-5f);
         // Dampen the velocity so that it decreases exponentially and stops
         // after a few frames.
-        m_drag.velocity *= m_drag.intertia;
+        mDragState.velocity *= mDragState.intertia;
         updateViewMatrix();
     }
 }
@@ -204,11 +204,11 @@ void Engine::initGui() {
     ImGui::GetIO();
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOther(m_window, true);
+    ImGui_ImplGlfw_InitForOther(mWindow, true);
 
     // Need access to the wgpu device to init the UI
-    Device device = m_renderer.getDevice();
-    auto swapChainFormat = m_renderer.getSwapChainFormat();
-    auto depthTextureFormat = m_renderer.getDepthTextureFormat();
+    Device device = mRenderer.getDevice();
+    auto swapChainFormat = mRenderer.getSwapChainFormat();
+    auto depthTextureFormat = mRenderer.getDepthTextureFormat();
     ImGui_ImplWGPU_Init(device, 3, swapChainFormat, depthTextureFormat);
 }

@@ -106,11 +106,11 @@ class Engine {
     };
 
     // Everything that is initialized in `onInit` and needed in `onFrame`.
-    GLFWwindow* m_window = nullptr;
-    Renderer m_renderer;
+    GLFWwindow* mWindow = nullptr;
+    Renderer mRenderer;
 
-    CameraState m_cameraState;
-    DragState m_drag;
+    CameraState mCameraState;
+    DragState mDragState;
 
-    PlanetGenerator m_planetGenerator;
+    PlanetGenerator mPlanetGenerator;
 };
